@@ -21,25 +21,25 @@ jobs:
           - name: Windows x64
             platform: windows-latest
             args: ""
-            rustTargets: ""
+            rustTarget: none
             sidecarTarget: x86_64-pc-windows-msvc
 
           - name: Linux x64
             platform: ubuntu-22.04
             args: ""
-            rustTargets: ""
+            rustTarget: none
             sidecarTarget: x86_64-unknown-linux-gnu
 
           - name: macOS Intel
             platform: macos-13
             args: "--target x86_64-apple-darwin"
-            rustTargets: x86_64-apple-darwin
+            rustTarget: x86_64-apple-darwin
             sidecarTarget: x86_64-apple-darwin
 
           - name: macOS Apple Silicon
             platform: macos-14
             args: "--target aarch64-apple-darwin"
-            rustTargets: aarch64-apple-darwin
+            rustTarget: aarch64-apple-darwin
             sidecarTarget: aarch64-apple-darwin
 
     steps:
@@ -53,9 +53,14 @@ jobs:
           cache: npm
 
       - name: Setup Rust
+        if: matrix.rustTarget == 'none'
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup Rust target
+        if: matrix.rustTarget != 'none'
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.rustTargets }}
+          targets: ${{ matrix.rustTarget }}
 
       - name: Install Linux system dependencies
         if: runner.os == 'Linux'
@@ -94,4 +99,4 @@ jobs:
           uploadUpdaterJson: false
           uploadWorkflowArtifacts: true
           workflowArtifactNamePattern: "[platform]-[arch]-[bundle]"
-          releaseAssetNamePattern: "Local-Convert_[version]_[platform]_[arch][setup].[ext]"
+          releaseAssetNamePattern: "Local-Convert_[version]_[platform]_[arch][setup][ext]"
