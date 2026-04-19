@@ -28,24 +28,32 @@ jobs:
             args: ""
             rustTarget: none
             sidecarTarget: x86_64-pc-windows-msvc
+            artifactName: local-convert-windows-x64
+            bundlePath: src-tauri/target/release/bundle/**/*
 
           - name: Linux x64
             platform: ubuntu-22.04
             args: ""
             rustTarget: none
             sidecarTarget: x86_64-unknown-linux-gnu
+            artifactName: local-convert-linux-x64
+            bundlePath: src-tauri/target/release/bundle/**/*
 
           - name: macOS Intel
             platform: macos-13
             args: "--target x86_64-apple-darwin"
             rustTarget: x86_64-apple-darwin
             sidecarTarget: x86_64-apple-darwin
+            artifactName: local-convert-macos-intel
+            bundlePath: src-tauri/target/x86_64-apple-darwin/release/bundle/**/*
 
           - name: macOS Apple Silicon
             platform: macos-14
             args: "--target aarch64-apple-darwin"
             rustTarget: aarch64-apple-darwin
             sidecarTarget: aarch64-apple-darwin
+            artifactName: local-convert-macos-apple-silicon
+            bundlePath: src-tauri/target/aarch64-apple-darwin/release/bundle/**/*
 
     steps:
       - name: Checkout
@@ -103,3 +111,10 @@ jobs:
           tagName: "v__VERSION__"
           includeUpdaterJson: false
           assetNamePattern: "Local-Convert_[version]_[platform]_[arch][setup][ext]"
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifactName }}
+          path: ${{ matrix.bundlePath }}
+          if-no-files-found: error
