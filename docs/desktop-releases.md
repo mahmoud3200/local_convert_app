@@ -18,6 +18,8 @@ git push origin v1.0.0
 
 The workflow creates a draft GitHub Release named from the Tauri app version and uploads the generated installers/bundles.
 
+The workflow uses `npm install --no-audit --no-fund` instead of `npm ci` because some platform-specific optional packages are resolved differently on Windows, Linux, and macOS runners. `npm ci` is stricter, but it can fail when optional native package entries drift across platforms.
+
 Important FFmpeg note:
 
 - Windows uses the downloaded Gyan FFmpeg build.
