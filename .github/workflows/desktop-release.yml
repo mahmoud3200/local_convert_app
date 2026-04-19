@@ -29,7 +29,6 @@ jobs:
             rustTarget: none
             sidecarTarget: x86_64-pc-windows-msvc
             artifactName: local-convert-windows-x64
-            bundlePath: src-tauri/target/release/bundle/**/*
 
           - name: Linux x64
             platform: ubuntu-22.04
@@ -37,7 +36,6 @@ jobs:
             rustTarget: none
             sidecarTarget: x86_64-unknown-linux-gnu
             artifactName: local-convert-linux-x64
-            bundlePath: src-tauri/target/release/bundle/**/*
 
           - name: macOS Intel
             platform: macos-13
@@ -45,7 +43,6 @@ jobs:
             rustTarget: x86_64-apple-darwin
             sidecarTarget: x86_64-apple-darwin
             artifactName: local-convert-macos-intel
-            bundlePath: src-tauri/target/x86_64-apple-darwin/release/bundle/**/*
 
           - name: macOS Apple Silicon
             platform: macos-14
@@ -53,7 +50,6 @@ jobs:
             rustTarget: aarch64-apple-darwin
             sidecarTarget: aarch64-apple-darwin
             artifactName: local-convert-macos-apple-silicon
-            bundlePath: src-tauri/target/aarch64-apple-darwin/release/bundle/**/*
 
     steps:
       - name: Checkout
@@ -98,23 +94,27 @@ jobs:
           TAURI_SIDECAR_TARGET_TRIPLE: ${{ matrix.sidecarTarget }}
         run: npm run ffmpeg:setup
 
-      - name: Build and upload Tauri bundles
-        uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          args: ${{ matrix.args }}
-          releaseName: "Local Convert v__VERSION__"
-          releaseBody: "Desktop builds for Windows, Linux, and macOS. Choose the installer for your operating system."
-          releaseDraft: true
-          prerelease: false
-          tagName: "v__VERSION__"
-          includeUpdaterJson: false
-          assetNamePattern: "Local-Convert_[version]_[platform]_[arch][setup][ext]"
+      - name: Build Tauri app
+        run: npm run tauri build -- ${{ matrix.args }}
+
+      - name: List generated bundle files
+        shell: pwsh
+        run: |
+          $files = Get-ChildItem -Path src-tauri/target -Recurse -File -ErrorAction SilentlyContinue |
+            Where-Object { $_.FullName -match "[\\/]bundle[\\/]" } |
+            Select-Object FullName, Length
+
+          if (-not $files) {
+            throw "No Tauri bundle files were found under src-tauri/target/**/bundle."
+          }
+
+          $files | Format-Table -AutoSize
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifactName }}
-          path: ${{ matrix.bundlePath }}
+          path: |
+            src-tauri/target/release/bundle/**/*
+            src-tauri/target/*/release/bundle/**/*
           if-no-files-found: error

@@ -9,14 +9,16 @@ The workflow builds:
 - macOS Intel
 - macOS Apple Silicon
 
-Run it manually from GitHub Actions, or create a version tag:
+Run it manually from GitHub Actions, push to `main`, or create a version tag:
 
 ```sh
 git tag v1.0.0
 git push origin v1.0.0
 ```
 
-The workflow creates a draft GitHub Release named from the Tauri app version and uploads the generated installers/bundles.
+The workflow uploads each platform build as a GitHub Actions artifact. Open the completed workflow run and download artifacts from the bottom of the run summary page.
+
+Artifacts are not committed into the repository. They only live on the GitHub Actions run page.
 
 The workflow uses `npm install --no-audit --no-fund` instead of `npm ci` because some platform-specific optional packages are resolved differently on Windows, Linux, and macOS runners. `npm ci` is stricter, but it can fail when optional native package entries drift across platforms.
 
