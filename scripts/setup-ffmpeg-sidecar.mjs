@@ -7,7 +7,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 const scriptPath = fileURLToPath(import.meta.url);
 const repoRoot = resolve(dirname(scriptPath), "..");
 const binaryDir = join(repoRoot, "src-tauri", "binaries");
-const hostTuple = getHostTuple();
+const hostTuple = process.env.TAURI_SIDECAR_TARGET_TRIPLE || getHostTuple();
 const executableExtension = process.platform === "win32" ? ".exe" : "";
 const sidecarPath = join(binaryDir, `ffmpeg-${hostTuple}${executableExtension}`);
 

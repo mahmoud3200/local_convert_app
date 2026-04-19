@@ -1,0 +1,97 @@
+name: Build desktop apps
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-desktop:
+    name: Build ${{ matrix.name }}
+    runs-on: ${{ matrix.platform }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows x64
+            platform: windows-latest
+            args: ""
+            rustTargets: ""
+            sidecarTarget: x86_64-pc-windows-msvc
+
+          - name: Linux x64
+            platform: ubuntu-22.04
+            args: ""
+            rustTargets: ""
+            sidecarTarget: x86_64-unknown-linux-gnu
+
+          - name: macOS Intel
+            platform: macos-13
+            args: "--target x86_64-apple-darwin"
+            rustTargets: x86_64-apple-darwin
+            sidecarTarget: x86_64-apple-darwin
+
+          - name: macOS Apple Silicon
+            platform: macos-14
+            args: "--target aarch64-apple-darwin"
+            rustTargets: aarch64-apple-darwin
+            sidecarTarget: aarch64-apple-darwin
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rustTargets }}
+
+      - name: Install Linux system dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            ffmpeg \
+            libwebkit2gtk-4.1-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
+      - name: Install macOS FFmpeg
+        if: runner.os == 'macOS'
+        run: brew install ffmpeg
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Prepare FFmpeg sidecar
+        env:
+          TAURI_SIDECAR_TARGET_TRIPLE: ${{ matrix.sidecarTarget }}
+        run: npm run ffmpeg:setup
+
+      - name: Build and upload Tauri bundles
+        uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          args: ${{ matrix.args }}
+          releaseName: "Local Convert v__VERSION__"
+          releaseBody: "Desktop builds for Windows, Linux, and macOS. Choose the installer for your operating system."
+          releaseDraft: true
+          prerelease: false
+          tagName: "v__VERSION__"
+          uploadUpdaterJson: false
+          uploadWorkflowArtifacts: true
+          workflowArtifactNamePattern: "[platform]-[arch]-[bundle]"
+          releaseAssetNamePattern: "Local-Convert_[version]_[platform]_[arch][setup].[ext]"
