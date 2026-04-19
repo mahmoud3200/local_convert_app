@@ -11,6 +11,9 @@ on:
 permissions:
   contents: write
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build-desktop:
     name: Build ${{ matrix.name }}
@@ -98,7 +101,5 @@ jobs:
           releaseDraft: true
           prerelease: false
           tagName: "v__VERSION__"
-          uploadUpdaterJson: false
-          uploadWorkflowArtifacts: true
-          workflowArtifactNamePattern: "[platform]-[arch]-[bundle]"
-          releaseAssetNamePattern: "Local-Convert_[version]_[platform]_[arch][setup][ext]"
+          includeUpdaterJson: false
+          assetNamePattern: "Local-Convert_[version]_[platform]_[arch][setup][ext]"
