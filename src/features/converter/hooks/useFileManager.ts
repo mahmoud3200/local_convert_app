@@ -1,7 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { MAX_PREVIEW_FILE_SIZE_BYTES } from "@/features/converter/constants";
 import { formatBytes } from "@/features/converter/file-formatting";
-import { getDetectedFileInfo } from "@/features/converter/format-support";
-import { loadMediaDimensions } from "@/features/converter/media-metadata";
+import {
+  getDetectedFileInfo,
+  getDetectedFileInfoFromName,
+} from "@/features/converter/format-support";
+import { loadMediaDimensions } from "@/platform/preview/media-dimensions";
+import type { NativeSelectedFile } from "@/platform/files/types";
 import type {
   ManagedConversionFile,
   ManagedFileStatus,
@@ -24,7 +29,7 @@ export function useFileManager() {
   useEffect(() => {
     return () => {
       for (const file of filesRef.current) {
-        if (file.previewUrl) {
+        if (file.previewUrl && file.shouldRevokePreviewUrl) {
           URL.revokeObjectURL(file.previewUrl);
         }
       }
@@ -55,7 +60,9 @@ export function useFileManager() {
 
       const id = crypto.randomUUID();
       const previewUrl =
-        detected.kind === "image" ? URL.createObjectURL(file) : null;
+        detected.kind === "image" && file.size <= MAX_PREVIEW_FILE_SIZE_BYTES
+          ? URL.createObjectURL(file)
+          : null;
 
       supportedFiles.push({
         id,
@@ -68,6 +75,7 @@ export function useFileManager() {
         extension: detected.extension,
         detailsLabel: detected.label,
         previewUrl,
+        shouldRevokePreviewUrl: Boolean(previewUrl),
         naturalWidth: null,
         naturalHeight: null,
         status: "ready",
@@ -87,8 +95,12 @@ export function useFileManager() {
     }
 
     for (const file of supportedFiles) {
+      if (file.size > MAX_PREVIEW_FILE_SIZE_BYTES) {
+        continue;
+      }
+
       if (file.kind === "image" && file.previewUrl) {
-        loadMediaDimensions(file.file, "image", file.previewUrl).then(
+        loadMediaDimensions("image", file.previewUrl).then(
           ({ width, height, detailsLabel }) => {
             updateFile(file.id, (currentFile) => ({
               ...currentFile,
@@ -101,8 +113,73 @@ export function useFileManager() {
         continue;
       }
 
-      if (file.kind === "video") {
-        loadMediaDimensions(file.file, "video").then(
+      if (file.kind === "video" && file.file) {
+        const mediaUrl = URL.createObjectURL(file.file);
+        loadMediaDimensions("video", mediaUrl).then(
+          ({ width, height, detailsLabel }) => {
+            URL.revokeObjectURL(mediaUrl);
+            updateFile(file.id, (currentFile) => ({
+              ...currentFile,
+              naturalWidth: width,
+              naturalHeight: height,
+              detailsLabel,
+            }));
+          },
+        );
+      }
+    }
+
+    return supportedFiles;
+  }
+
+  function addNativeFiles(inputFiles: NativeSelectedFile[]) {
+    const supportedFiles: ManagedConversionFile[] = [];
+    let rejectedCount = 0;
+
+    for (const file of inputFiles) {
+      const detected = getDetectedFileInfoFromName(file.name, file.type);
+      if (detected.kind === "unknown") {
+        rejectedCount += 1;
+        continue;
+      }
+
+      supportedFiles.push({
+        id: crypto.randomUUID(),
+        nativePath: file.path,
+        name: file.name,
+        size: file.size,
+        sizeLabel: formatBytes(file.size),
+        type: file.type || detected.extension.toUpperCase() || "Unknown",
+        kind: detected.kind,
+        extension: detected.extension,
+        detailsLabel: detected.label,
+        previewUrl: file.previewUrl,
+        shouldRevokePreviewUrl: false,
+        naturalWidth: null,
+        naturalHeight: null,
+        status: "ready",
+      });
+    }
+
+    if (supportedFiles.length > 0) {
+      setFiles((current) => [...current, ...supportedFiles]);
+    }
+
+    if (rejectedCount > 0) {
+      setMessage(
+        `${rejectedCount} file${rejectedCount === 1 ? "" : "s"} skipped because the type is not supported.`,
+      );
+    } else if (supportedFiles.length > 0) {
+      setMessage("");
+    }
+
+    for (const file of supportedFiles) {
+      if (file.size > MAX_PREVIEW_FILE_SIZE_BYTES) {
+        continue;
+      }
+
+      if ((file.kind === "image" || file.kind === "video") && file.previewUrl) {
+        loadMediaDimensions(file.kind, file.previewUrl).then(
           ({ width, height, detailsLabel }) => {
             updateFile(file.id, (currentFile) => ({
               ...currentFile,
@@ -121,7 +198,7 @@ export function useFileManager() {
   function removeFile(id: string) {
     setFiles((current) => {
       const target = current.find((file) => file.id === id);
-      if (target?.previewUrl) {
+      if (target?.previewUrl && target.shouldRevokePreviewUrl) {
         URL.revokeObjectURL(target.previewUrl);
       }
 
@@ -132,7 +209,7 @@ export function useFileManager() {
   function clearAllFiles() {
     setFiles((current) => {
       for (const file of current) {
-        if (file.previewUrl) {
+        if (file.previewUrl && file.shouldRevokePreviewUrl) {
           URL.revokeObjectURL(file.previewUrl);
         }
       }
@@ -151,6 +228,7 @@ export function useFileManager() {
     filesById,
     message,
     addFiles,
+    addNativeFiles,
     clearAllFiles,
     getFile,
     removeFile,

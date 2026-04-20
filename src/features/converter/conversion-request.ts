@@ -11,6 +11,9 @@ export function createConvertRequest(
 ): ConvertRequest {
   return {
     file: file.file,
+    nativePath: file.nativePath,
+    fileName: file.name,
+    fileSize: file.size,
     kind: file.kind,
     outputFormat: settings.format,
     options: {

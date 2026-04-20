@@ -52,13 +52,6 @@ export interface FileConversionSettings {
   advanced: AdvancedSettings;
 }
 
-export interface DownloadableOutput {
-  fileName: string;
-  mimeType: string;
-  blob: Blob;
-  objectUrl: string;
-}
-
 export interface SelectOptionValue<TValue extends string = string> {
   label: string;
   value: TValue;
@@ -79,7 +72,8 @@ export interface DetectedFileInfo {
 
 export interface ManagedConversionFile {
   id: string;
-  file: File;
+  file?: File;
+  nativePath?: string;
   name: string;
   size: number;
   sizeLabel: string;
@@ -88,6 +82,7 @@ export interface ManagedConversionFile {
   extension: string;
   detailsLabel: string;
   previewUrl: string | null;
+  shouldRevokePreviewUrl: boolean;
   naturalWidth: number | null;
   naturalHeight: number | null;
   status: ManagedFileStatus;

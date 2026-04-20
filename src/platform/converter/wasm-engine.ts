@@ -118,6 +118,11 @@ export class WasmEngine implements ConverterEngine {
     request: ConvertRequest,
     onProgress?: (progress: ConvertProgress) => void,
   ) {
+    const sourceFile = request.file;
+    if (!sourceFile) {
+      throw new Error("Browser conversion requires a browser File object.");
+    }
+
     onProgress?.({ phase: "loading", message: "Loading FFmpeg..." });
     await this.init();
 
@@ -131,9 +136,9 @@ export class WasmEngine implements ConverterEngine {
 
     onProgress?.({ phase: "preparing", message: "Preparing file..." });
 
-    const inputName = `input.${getInputExtension(request.file.name)}`;
+    const inputName = `input.${getInputExtension(request.fileName)}`;
     const fsOutputName = `output.${format}`;
-    const outputName = this.buildOutputName(request.file.name, format);
+    const outputName = this.buildOutputName(request.fileName, format);
     const logMessages: string[] = [];
     const logHandler: LogEventCallback = ({ message }) => {
       const cleanMessage = message.trim();
@@ -156,7 +161,7 @@ export class WasmEngine implements ConverterEngine {
       });
     };
 
-    await this.ffmpeg.writeFile(inputName, await fetchFile(request.file));
+    await this.ffmpeg.writeFile(inputName, await fetchFile(sourceFile));
     this.ffmpeg.on("progress", progressHandler);
     this.ffmpeg.on("log", logHandler);
 
@@ -438,7 +443,7 @@ function assertWithinWasmLimits(request: ConvertRequest, format: string) {
   if (
     request.kind === "video" &&
     !canCopyVideoStreams(request, format) &&
-    request.file.size > WASM_VIDEO_TRANSCODE_LIMIT_BYTES
+    request.fileSize > WASM_VIDEO_TRANSCODE_LIMIT_BYTES
   ) {
     throw new Error(
       "This video is too large for reliable browser WASM transcoding. Use the desktop Tauri engine for large video files.",
@@ -455,7 +460,7 @@ function buildFfmpegFailureMessage(
 ) {
   const logText = logs.join("\n");
   const lastLog = getLastUsefulLog(logs);
-  const inputExtension = getInputExtension(request.file.name);
+  const inputExtension = getInputExtension(request.fileName);
 
   if (format === "avif" && /libaom|av1|encoder/i.test(logText)) {
     return "AVIF export is not available in the bundled FFmpeg WASM core because it does not include an AV1 encoder. Use PNG, JPEG, or WebP for now.";
@@ -572,7 +577,7 @@ function getVideoBitrate(request: ConvertRequest) {
 }
 
 function canCopyVideoStreams(request: ConvertRequest, format: string) {
-  const inputExtension = getInputExtension(request.file.name);
+  const inputExtension = getInputExtension(request.fileName);
   const canSafelyRemuxToMp4 =
     format === "mp4" && ["mp4", "m4v", "mov"].includes(inputExtension);
 

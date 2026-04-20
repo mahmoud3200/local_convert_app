@@ -1,32 +1,27 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createConvertRequest } from "@/features/converter/conversion-request";
-import {
-  createDownloadableOutput,
-  revokeBrowserDownload,
-} from "@/platform/output/web-output";
-import {
-  saveDownloadableOutput,
-  saveDownloadableOutputsAsZip,
-} from "@/platform/output/download-output";
 import { useToast } from "@/hooks/useToast";
 import type {
-  DownloadableOutput,
   FileConversionSettings,
   ManagedConversionFile,
   ManagedFileStatus,
 } from "@/features/converter/types";
 import type { ConverterEngine } from "@/platform/converter/engine";
+import type { DownloadableOutput } from "@/platform/output/types";
+import type { ConverterPlatformServices } from "@/platform/converter-platform";
 
 interface UseConversionProcessOptions {
   engine: ConverterEngine;
   files: ManagedConversionFile[];
   onStatusChange: (fileId: string, status: ManagedFileStatus) => void;
+  platform: ConverterPlatformServices;
 }
 
 export function useConversionProcess({
   engine,
   files,
   onStatusChange,
+  platform,
 }: UseConversionProcessOptions) {
   const toast = useToast();
   const activeFileIdsRef = useRef(new Set(files.map((file) => file.id)));
@@ -46,10 +41,10 @@ export function useConversionProcess({
   useEffect(() => {
     return () => {
       for (const output of Object.values(downloadsRef.current)) {
-        revokeBrowserDownload(output);
+        platform.cleanupDownloadableOutput(output);
       }
     };
-  }, []);
+  }, [platform]);
 
   const activeIds = useMemo(() => new Set(files.map((file) => file.id)), [files]);
 
@@ -70,7 +65,7 @@ export function useConversionProcess({
       const existing = next[fileId];
 
       if (existing) {
-        revokeBrowserDownload(existing);
+        platform.cleanupDownloadableOutput(existing);
       }
 
       delete next[fileId];
@@ -111,7 +106,7 @@ export function useConversionProcess({
 
       setStoredDownloadsByFileId((current) => ({
         ...current,
-        [file.id]: createDownloadableOutput(result),
+        [file.id]: platform.createDownloadableOutput(result),
       }));
       onStatusChange(file.id, "done");
     } catch (error) {
@@ -131,7 +126,7 @@ export function useConversionProcess({
     }
 
     try {
-      const result = await saveDownloadableOutput(output);
+      const result = await platform.saveDownloadableOutput(output);
 
       if (result.status === "saved") {
         toast.success(getDownloadSuccessMessage(output.fileName, result.target));
@@ -152,7 +147,7 @@ export function useConversionProcess({
     }
 
     try {
-      const result = await saveDownloadableOutputsAsZip(outputs);
+      const result = await platform.saveDownloadableOutputsAsZip(outputs);
 
       if (result.status === "saved") {
         toast.success(getDownloadSuccessMessage("local-convert-results.zip", result.target));

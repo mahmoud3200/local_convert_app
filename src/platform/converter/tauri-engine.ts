@@ -14,6 +14,12 @@ type TauriConvertResponse = {
   mimeType: string;
 };
 
+type TauriPathConvertResponse = {
+  nativePath: string;
+  fileName: string;
+  mimeType: string;
+};
+
 export const TAURI_ENGINE_CAPABILITIES: EngineCapabilities = {
   runtime: "tauri-native",
   label: "Desktop native FFmpeg",
@@ -82,14 +88,47 @@ export class TauriEngine implements ConverterEngine {
 
     onProgress?.({ phase: "preparing", message: "Preparing native conversion..." });
 
+    if (request.nativePath) {
+      onProgress?.({ phase: "converting", message: "Converting with native FFmpeg..." });
+
+      const result = await invoke<TauriPathConvertResponse>("convert_file_path", {
+        request: {
+          inputPath: request.nativePath,
+          fileName: request.fileName,
+          kind: request.kind,
+          outputFormat: request.outputFormat,
+          options: request.options ?? {},
+        },
+      }).catch((error: unknown) => {
+        throw new Error(getTauriInvokeErrorMessage(error));
+      });
+
+      onProgress?.({ phase: "done", message: "Done." });
+
+      return {
+        nativePath: result.nativePath,
+        fileName: result.fileName,
+        mimeType: result.mimeType,
+      };
+    }
+
+    if (!request.file) {
+      throw new Error("Desktop conversion requires a native file path or a browser File object.");
+    }
+
+    if (request.file.size > 250 * 1024 * 1024) {
+      throw new Error(
+        "This file was added without a native desktop path, so it would need to be copied through JavaScript memory. Use the Select files button in the desktop app for large files.",
+      );
+    }
+
     const bytes = Array.from(new Uint8Array(await request.file.arrayBuffer()));
 
     onProgress?.({ phase: "converting", message: "Converting with native FFmpeg..." });
 
     const result = await invoke<TauriConvertResponse>("convert_file", {
       request: {
-        fileName: request.file.name,
-        mimeType: request.file.type,
+        fileName: request.fileName,
         kind: request.kind,
         outputFormat: request.outputFormat,
         options: request.options ?? {},

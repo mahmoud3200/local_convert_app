@@ -21,7 +21,10 @@ export type EngineCapabilities = {
 };
 
 export type ConvertRequest = {
-  file: File;
+  file?: File;
+  nativePath?: string;
+  fileName: string;
+  fileSize: number;
   kind: MediaKind;
   outputFormat: string;
   options?: {
@@ -43,7 +46,8 @@ export type ConvertProgress = {
 };
 
 export type ConvertResult = {
-  blob: Blob;
+  blob?: Blob;
+  nativePath?: string;
   fileName: string;
   mimeType: string;
 };

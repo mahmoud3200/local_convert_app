@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { getFormatOptionsForKind } from "@/features/converter/format-support";
@@ -8,15 +7,12 @@ import { useFileSettingsDraft } from "@/features/converter/hooks/useFileSettings
 import { ConverterDialogShell } from "./ConverterDialogShell";
 import { AdvancedSettingsForm } from "../settings/AdvancedSettingsForm";
 import { PresetOptionCards } from "../settings/PresetOptionCards";
-import { SettingsSectionNav } from "../settings/SettingsSectionNav";
 import type {
   FileConversionSettings,
   ManagedConversionFile,
   OutputFormat,
 } from "@/features/converter/types";
 import type { EngineCapabilities } from "@/platform/converter/engine";
-
-type SettingsSection = "format" | "preset" | "advanced";
 
 interface FileSettingsDialogProps {
   file: ManagedConversionFile;
@@ -26,12 +22,6 @@ interface FileSettingsDialogProps {
   onSave: (fileId: string, nextSettings: FileConversionSettings) => void;
   onSaved?: () => void;
 }
-
-const sections: Array<{ id: SettingsSection; label: string }> = [
-  { id: "format", label: "Output format" },
-  { id: "preset", label: "Presets" },
-  { id: "advanced", label: "Advanced settings" },
-];
 
 export function FileSettingsDialog({
   file,
@@ -44,7 +34,6 @@ export function FileSettingsDialog({
   const formatOptions = getFormatOptionsForKind(file.kind, capabilities);
   const presetOptions = getPresetOptionsForKind(file.kind);
   const canUsePresets = hasPresetControlsForKind(file.kind, capabilities);
-  const [activeSection, setActiveSection] = useState<SettingsSection>("format");
   const draft = useFileSettingsDraft({ file, settings });
 
   function handleSave() {
@@ -75,25 +64,23 @@ export function FileSettingsDialog({
       title={file.name}
       onClose={onClose}
     >
-      <div className="grid h-full gap-6 overflow-hidden px-6 py-5 md:grid-cols-[220px_minmax(0,1fr)]">
-        <SettingsSectionNav
-          activeSection={activeSection}
-          activeTextClassName="text-app-accent"
-          sections={sections}
-          onSectionChange={setActiveSection}
-        />
+      <div className="h-full overflow-hidden px-6 py-5">
+        <div className="h-full overflow-auto rounded-panel border border-app-border bg-app-subtle p-4">
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-sm font-semibold text-app-fg">
+                {file.kind} settings
+              </h3>
+              <p className="mt-1 text-sm text-app-muted">
+                Settings update only this file and do not affect the rest of
+                the queue.
+              </p>
+            </div>
 
-        <div className="min-h-0 overflow-auto rounded-panel border border-app-border bg-app-subtle p-4">
-          {activeSection === "format" ? (
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-sm font-semibold text-app-fg">
-                  Output format
-                </h3>
-                <p className="mt-1 text-sm text-app-muted">
-                  Choose the export format for this {file.kind} file.
-                </p>
-              </div>
+            <div className="space-y-2">
+              <h4 className="text-sm font-semibold text-app-fg">
+                Output format
+              </h4>
               <Select
                 value={draft.draftSettings.format}
                 options={formatOptions}
@@ -102,19 +89,18 @@ export function FileSettingsDialog({
                 }
               />
             </div>
-          ) : null}
 
-          {activeSection === "preset" ? (
             <div className="space-y-3">
               <div>
-                <h3 className="text-sm font-semibold text-app-fg">Presets</h3>
+                <h4 className="text-sm font-semibold text-app-fg">Presets</h4>
                 <p className="mt-1 text-sm text-app-muted">
-                  Pick a quality preset for this single file.
+                  Presets are shortcuts. Editing advanced values turns this file
+                  into a custom setup.
                 </p>
               </div>
               {canUsePresets ? (
                 <PresetOptionCards
-                  customMessage="Advanced values were edited manually, so this file is using a custom configuration."
+                  customMessage="This file is currently using a custom configuration."
                   options={presetOptions}
                   selectedPreset={draft.draftSettings.preset}
                   onSelect={draft.changePreset}
@@ -126,16 +112,14 @@ export function FileSettingsDialog({
                 </p>
               )}
             </div>
-          ) : null}
 
-          {activeSection === "advanced" ? (
             <div className="space-y-4">
               <div>
-                <h3 className="text-sm font-semibold text-app-fg">
+                <h4 className="text-sm font-semibold text-app-fg">
                   Advanced settings
-                </h3>
+                </h4>
                 <p className="mt-1 text-sm text-app-muted">
-                  Only valid settings for the detected file type are shown.
+                  Only controls valid for {file.kind} conversion are shown.
                 </p>
               </div>
               <AdvancedSettingsForm
@@ -145,7 +129,7 @@ export function FileSettingsDialog({
                 onChange={draft.changeAdvanced}
               />
             </div>
-          ) : null}
+          </div>
         </div>
       </div>
     </ConverterDialogShell>

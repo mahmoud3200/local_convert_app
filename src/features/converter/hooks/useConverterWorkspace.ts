@@ -1,30 +1,41 @@
-import { useState } from "react";
+import { MAX_PREVIEW_FILE_SIZE_BYTES } from "@/features/converter/constants";
 import {
   getAcceptedFileTypes,
+  getAllSupportedInputExtensions,
   getSupportedUploadLabels,
 } from "@/features/converter/format-support";
 import { sanitizeSettingsForKind } from "@/features/converter/settings-rules";
 import { useConversionProcess } from "@/features/converter/hooks/useConversionProcess";
 import { useConversionSettings } from "@/features/converter/hooks/useConversionSettings";
 import { useFileManager } from "@/features/converter/hooks/useFileManager";
-import { createConverterEngine } from "@/platform/converter/create-engine";
 import type {
   FileConversionSettings,
   MediaKind,
 } from "@/features/converter/types";
+import type { ConverterPlatformServices } from "@/platform/converter-platform";
 
-export function useConverterWorkspace() {
-  const [engine] = useState(createConverterEngine);
+export function useConverterWorkspace(platform: ConverterPlatformServices) {
+  const engine = platform.engine;
   const fileManager = useFileManager();
   const settingsManager = useConversionSettings(engine.capabilities);
   const processManager = useConversionProcess({
     engine,
     files: fileManager.files,
     onStatusChange: fileManager.updateFileStatus,
+    platform,
   });
 
   function addFiles(inputFiles: FileList | File[]) {
     const newFiles = fileManager.addFiles(inputFiles);
+    settingsManager.registerFiles(newFiles);
+  }
+
+  async function browseNativeFiles() {
+    const selectedFiles = await platform.pickNativeFiles({
+      extensions: getAllSupportedInputExtensions(),
+      previewLimitBytes: MAX_PREVIEW_FILE_SIZE_BYTES,
+    });
+    const newFiles = fileManager.addNativeFiles(selectedFiles);
     settingsManager.registerFiles(newFiles);
   }
 
@@ -142,6 +153,7 @@ export function useConverterWorkspace() {
     downloadsByFileId: processManager.downloadsByFileId,
     settingsByFileId: settingsManager.settingsByFileId,
     supportedUploadLabels: getSupportedUploadLabels(),
+    usesNativeFilePicker: platform.usesNativeFilePicker,
     canConvertAll: fileManager.files.some(
       (file) => file.status === "ready" || file.status === "error",
     ),
@@ -152,6 +164,7 @@ export function useConverterWorkspace() {
       ),
     actions: {
       addFiles,
+      browseNativeFiles,
       clearAll,
       convert,
       convertAll,

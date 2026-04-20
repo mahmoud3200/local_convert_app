@@ -69,9 +69,15 @@ export function isOutputFormatValidForKind(
 }
 
 export function getAcceptedFileTypes() {
-  return Object.values(SUPPORTED_INPUTS)
-    .flatMap((definition) => definition.extensions.map((extension) => `.${extension}`))
+  return getAllSupportedInputExtensions()
+    .map((extension) => `.${extension}`)
     .join(",");
+}
+
+export function getAllSupportedInputExtensions() {
+  return Object.values(SUPPORTED_INPUTS).flatMap(
+    (definition) => definition.extensions,
+  );
 }
 
 export function getSupportedUploadLabels() {
@@ -100,12 +106,19 @@ function createFormatOptionsFromExtensions(
 }
 
 export function getDetectedFileInfo(file: File): DetectedFileInfo {
-  const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
+  return getDetectedFileInfoFromName(file.name, file.type);
+}
+
+export function getDetectedFileInfoFromName(
+  fileName: string,
+  mimeType = "",
+): DetectedFileInfo {
+  const extension = fileName.split(".").pop()?.toLowerCase() ?? "";
 
   for (const [kind, definition] of Object.entries(SUPPORTED_INPUTS) as Array<
     [MediaKind, SupportedInputDefinition]
   >) {
-    const matchesMime = definition.mimePrefixes.some((prefix) => file.type.startsWith(prefix));
+    const matchesMime = definition.mimePrefixes.some((prefix) => mimeType.startsWith(prefix));
     const matchesExtension = definition.extensions.includes(extension);
 
     if (matchesMime || matchesExtension) {

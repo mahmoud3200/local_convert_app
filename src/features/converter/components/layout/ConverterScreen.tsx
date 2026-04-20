@@ -11,12 +11,17 @@ import { FilePreviewDialog } from "../dialogs/FilePreviewDialog";
 import { FileSettingsDialog } from "../dialogs/FileSettingsDialog";
 import { GlobalSettingsDialog } from "../dialogs/GlobalSettingsDialog";
 import { UploadDropzone } from "./UploadDropzone";
+import type { ConverterPlatformServices } from "@/platform/converter-platform";
 
-export function ConverterScreen() {
+interface ConverterScreenProps {
+  platform: ConverterPlatformServices;
+}
+
+export function ConverterScreen({ platform }: ConverterScreenProps) {
   const [previewFileId, setPreviewFileId] = useState<string | null>(null);
   const [settingsFileId, setSettingsFileId] = useState<string | null>(null);
   const [isGlobalSettingsOpen, setIsGlobalSettingsOpen] = useState(false);
-  const workspace = useConverterWorkspace();
+  const workspace = useConverterWorkspace(platform);
   const theme = useThemePreference();
   const toast = useToast();
 
@@ -43,6 +48,19 @@ export function ConverterScreen() {
     setSettingsFileId(null);
   }
 
+  async function handleNativeBrowse() {
+    try {
+      await workspace.actions.browseNativeFiles();
+    } catch (error) {
+      console.error(error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Could not open the desktop file picker.",
+      );
+    }
+  }
+
   return (
     <>
       <ConverterHeader />
@@ -65,11 +83,13 @@ export function ConverterScreen() {
           <UploadDropzone
             accept={workspace.acceptedFileTypes}
             helperMessage={workspace.message}
+            isNativeBrowseEnabled={workspace.usesNativeFilePicker}
             supportLabels={workspace.supportedUploadLabels}
             onFilesSelect={workspace.actions.addFiles}
+            onNativeBrowse={handleNativeBrowse}
           />
 
-          <DesktopAppCallout />
+          <DesktopAppCallout isVisible={!workspace.usesNativeFilePicker} />
 
           {workspace.files.length > 0 ? (
             <FileList

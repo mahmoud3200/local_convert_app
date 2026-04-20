@@ -1,4 +1,4 @@
-import type { DownloadableOutput } from "@/features/converter/types";
+import type { DownloadableOutput } from "./types";
 
 interface ZipEntry {
   name: string;
@@ -10,10 +10,16 @@ const crcTable = buildCrcTable();
 
 export async function createZipBlob(outputs: DownloadableOutput[]) {
   const entries = await Promise.all(
-    outputs.map(async (output) => ({
-      name: output.fileName,
-      bytes: new Uint8Array(await output.blob.arrayBuffer()),
-    })),
+    outputs.map(async (output) => {
+      if (!output.blob) {
+        throw new Error(`Converted output is not available in memory: ${output.fileName}`);
+      }
+
+      return {
+        name: output.fileName,
+        bytes: new Uint8Array(await output.blob.arrayBuffer()),
+      };
+    }),
   );
 
   return new Blob([buildZip(entries)], { type: "application/zip" });

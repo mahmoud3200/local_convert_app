@@ -1,6 +1,5 @@
 import { MonitorDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { isTauriRuntime } from "@/platform/tauri-runtime";
 
 const desktopDownloadUrl = (
   import.meta as ImportMeta & {
@@ -8,8 +7,12 @@ const desktopDownloadUrl = (
   }
 ).env?.VITE_DESKTOP_DOWNLOAD_URL;
 
-export function DesktopAppCallout() {
-  if (isTauriRuntime()) {
+interface DesktopAppCalloutProps {
+  isVisible: boolean;
+}
+
+export function DesktopAppCallout({ isVisible }: DesktopAppCalloutProps) {
+  if (!isVisible) {
     return null;
   }
 

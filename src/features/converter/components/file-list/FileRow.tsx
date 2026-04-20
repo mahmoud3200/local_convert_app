@@ -21,6 +21,7 @@ interface FileRowProps {
   canConvert: boolean;
   capabilities: EngineCapabilities;
   file: ManagedConversionFile;
+  canPreview: boolean;
   canDownload: boolean;
   settings?: FileConversionSettings;
   onConvert: () => void;
@@ -53,6 +54,7 @@ export function FileRow({
   canConvert,
   capabilities,
   file,
+  canPreview,
   canDownload,
   settings,
   onConvert,
@@ -104,16 +106,21 @@ export function FileRow({
         <div className="flex flex-wrap items-center gap-2">
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button
-                aria-label="Preview file"
-                size="icon"
-                variant="secondary"
-                onClick={onOpenPreview}
-              >
-                <Eye aria-hidden="true" className="h-4 w-4" />
-              </Button>
+              <span>
+                <Button
+                  aria-label="Preview file"
+                  disabled={!canPreview}
+                  size="icon"
+                  variant="secondary"
+                  onClick={onOpenPreview}
+                >
+                  <Eye aria-hidden="true" className="h-4 w-4" />
+                </Button>
+              </span>
             </TooltipTrigger>
-            <TooltipContent>Preview</TooltipContent>
+            <TooltipContent>
+              {canPreview ? "Preview" : "Preview disabled for files over 50 MB"}
+            </TooltipContent>
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>

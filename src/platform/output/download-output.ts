@@ -1,13 +1,11 @@
 import { isTauriRuntime } from "@/platform/tauri-runtime";
-import type { DownloadableOutput } from "@/features/converter/types";
-import { saveWithNativeDialog } from "./tauri-output";
+import type { DownloadableOutput, SaveOutputResult } from "./types";
+import {
+  saveNativeOutputsAsZipWithDialog,
+  saveWithNativeDialog,
+} from "./tauri-output";
 import { triggerBrowserDownload } from "./web-output";
 import { createZipBlob } from "./zip-output";
-
-export interface SaveOutputResult {
-  status: "saved" | "cancelled";
-  target: "browser-download" | "desktop-file";
-}
 
 export async function saveDownloadableOutput(
   output: DownloadableOutput,
@@ -30,6 +28,14 @@ export async function saveDownloadableOutput(
 export async function saveDownloadableOutputsAsZip(
   outputs: DownloadableOutput[],
 ): Promise<SaveOutputResult> {
+  if (isTauriRuntime() && outputs.every((output) => output.nativePath)) {
+    const saved = await saveNativeOutputsAsZipWithDialog(outputs);
+    return {
+      status: saved ? "saved" : "cancelled",
+      target: "desktop-file",
+    };
+  }
+
   const blob = await createZipBlob(outputs);
   const zipOutput = {
     blob,

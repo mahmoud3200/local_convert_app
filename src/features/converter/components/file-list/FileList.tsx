@@ -1,9 +1,10 @@
 import type {
-  DownloadableOutput,
   FileConversionSettings,
   ManagedConversionFile,
 } from "@/features/converter/types";
+import type { DownloadableOutput } from "@/platform/output/types";
 import type { EngineCapabilities } from "@/platform/converter/engine";
+import { canPreviewFile } from "@/features/converter/preview-rules";
 import { BatchActions } from "./BatchActions";
 import { FileRow } from "./FileRow";
 
@@ -47,6 +48,7 @@ export function FileList({
           key={file.id}
           canConvert={file.status !== "done" && file.status !== "converting"}
           file={file}
+          canPreview={canPreviewFile(file)}
           canDownload={
             Boolean(downloadsByFileId[file.id]) && file.status === "done"
           }
