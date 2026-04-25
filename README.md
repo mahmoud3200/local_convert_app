@@ -2,11 +2,11 @@
 
 Local Convert is a privacy-first local file converter built as a single codebase that runs in two environments:
 
-- Web: React + FFmpeg WASM for lighter, browser-safe work: (https://local-convert-app.vercel.app/)
-- Desktop: Tauri v2 + native FFmpeg for broader format support and heavier: (https://github.com/mahmoud3200/local_convert_app/releases/tag/v1.0-beta)
+- Web: React + FFmpeg WASM for lighter, browser-safe work: [local-convert-app.vercel.app](https://local-convert-app.vercel.app/)
+- Desktop: Tauri v2 + native FFmpeg for heavier local conversion: [GitHub Releases](https://github.com/mahmoud3200/local_convert_app/releases/tag/v1.0-beta)
 
 The project is intentionally a one-page utility, not a marketing site and not a routed app.
-(If i ever needed to do a marketing site i'll do a vanilla html, css, js landing page and route the app and the landing page using NGINX or refactor the repo to into next.js)
+(If I ever need a marketing site, I would rather keep it separate and simple than fold routing into the converter UI.)
 
 Current public release target: `v1.0-beta`
 
@@ -28,6 +28,21 @@ The goal was to build a practical, privacy-first tool that clearly separates res
 - Persists theme and default settings in `localStorage`
 - Persists the desktop queue across app restarts when files still exist
 - Uses desktop notifications when a conversion finishes in Tauri
+- Cancels active conversions when a file is removed, the queue is cleared, or the desktop app closes
+- Downloads desktop batch output as a ZIP archive
+
+## Desktop-specific behavior
+
+The desktop app does more than just swap conversion engines.
+
+- It prefers a bundled FFmpeg sidecar
+- If no sidecar is present, it can fall back to system `ffmpeg` on `PATH`
+- It keeps native file paths for desktop-selected files instead of pushing large files through JS memory
+- It persists restorable native-path queue items across app restarts
+- It shows desktop notifications when conversions finish
+- It prevents normal idle sleep while conversion is running
+- It stops running FFmpeg child processes when the app closes
+- It uses native save behavior for desktop downloads and zips `Download All` output
 
 ## Why there are two engines
 
@@ -56,6 +71,7 @@ The desktop build uses Tauri and calls native FFmpeg through Rust. This is the h
 - better handling for larger files
 - native file paths instead of copying everything through JS memory
 - platform integrations such as notifications and desktop save dialogs
+- bundled-sidecar-first FFmpeg resolution with system `ffmpeg` fallback when available
 
 The React UI does not know which engine is active. It talks to a platform boundary, and the platform picks the correct engine at runtime.
 
@@ -161,7 +177,16 @@ Conversion jobs are designed to be cancellable:
 
 That behavior exists because long-running local media work must not survive UI cleanup unexpectedly.
 
-### 9. Tailwind v4 uses semantic tokens
+### 9. Desktop lifecycle is defensive
+
+The desktop app handles a few OS-facing edge cases deliberately:
+
+- queue restore only brings back native-path files that still exist
+- restored small previews are rebuilt through Rust instead of trusting stale WebView file access
+- `Download All` on desktop produces a ZIP instead of pretending browser-style multi-download UX makes sense in a native app
+- FFmpeg child processes are tracked so they can be cancelled explicitly
+
+### 10. Tailwind v4 uses semantic tokens
 
 The UI uses Tailwind v4 with semantic CSS variables in [`src/styles/globals.css`](src/styles/globals.css):
 
@@ -171,7 +196,7 @@ The UI uses Tailwind v4 with semantic CSS variables in [`src/styles/globals.css`
 
 This keeps theme switching simple and keeps component classes tied to semantic meaning instead of hardcoded color values.
 
-### 10. Web Analytics
+### 11. Web analytics stay web-only
 
 The web version uses Vercel Analytics, as it is deployed on Vercel.  
 Implementation: [`src/app/WebsiteAnalytics.tsx`](src/app/WebsiteAnalytics.tsx)
@@ -226,11 +251,13 @@ src/
       cancel-all-conversions.ts
     files/
       tauri-file-picker.ts
+      types.ts
     notifications/
       conversion-notifications.ts
     output/
       download-output.ts
       tauri-output.ts
+      types.ts
       web-output.ts
       zip-output.ts
     power/
@@ -245,8 +272,18 @@ src/
 
 src-tauri/
   src/
+    commands/
+      conversion.rs
+      files.rs
+      output.rs
+    ffmpeg/
+      args.rs
+      runner.rs
+    conversion_paths.rs
     lib.rs
     main.rs
+    power.rs
+    types.rs
   binaries/
     ...FFmpeg sidecars per target when bundled
   tauri.conf.json
@@ -308,7 +345,16 @@ Key jobs handled in Rust:
 - native file metadata access
 - preview file reads for restored desktop items
 - saving and zipping generated outputs
+- sleep inhibition while conversion is active
 - app-close cleanup for running FFmpeg jobs
+
+Rust modules are now split by responsibility
+
+- `commands/` exposes Tauri command handlers
+- `ffmpeg/` contains FFmpeg argument building and process execution
+- `conversion_paths.rs` contains output-path helpers
+- `power.rs` contains sleep-prevention state
+- `types.rs` contains shared desktop request/response types
 
 ## Important files to understand first
 
@@ -325,6 +371,9 @@ If you are new to the codebase, start here:
 9. [`src/platform/converter/wasm-engine.ts`](src/platform/converter/wasm-engine.ts)
 10. [`src/platform/converter/tauri-engine.ts`](src/platform/converter/tauri-engine.ts)
 11. [`src-tauri/src/lib.rs`](src-tauri/src/lib.rs)
+12. [`src-tauri/src/commands/conversion.rs`](src-tauri/src/commands/conversion.rs)
+13. [`src-tauri/src/ffmpeg/runner.rs`](src-tauri/src/ffmpeg/runner.rs)
+14. [`src-tauri/src/ffmpeg/args.rs`](src-tauri/src/ffmpeg/args.rs)
 
 ## How the app flows
 
@@ -355,7 +404,13 @@ The Tauri config runs `npm run ffmpeg:setup` before dev/build. That script:
 - if no sidecar exists, tries to find a system `ffmpeg`
 - copies it into the Tauri sidecar slot for the active target
 
-For actual release builds, use the correct FFmpeg binary for each target platform instead of relying on a developer machine install.
+At runtime, the desktop backend also follows the same intention:
+
+- try bundled sidecar first
+- otherwise try system `ffmpeg`
+- otherwise return a clear missing-engine error
+
+For actual release builds, the intended setup is to bundle the correct FFmpeg binary for each target platform instead of relying on a developer machine install.
 
 ### Web development
 
@@ -397,6 +452,7 @@ Even when the browser passes the runtime check, codec/container support and perf
 - Browser video is intentionally limited compared to desktop
 - AVIF is not exposed in the web runtime
 - Preview is disabled above `50 MB`
+- Desktop still depends on FFmpeg being bundled correctly or being available on the system
 - Very large desktop video conversions can still take a long time depending on codec, resolution, bitrate, and hardware
 - Linux and macOS release builds exist, but broader runtime validation depends on real-device testing
 
