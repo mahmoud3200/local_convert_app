@@ -26,6 +26,8 @@ jobs:
           - name: Windows x64
             platform: windows-latest
             args: ""
+            packageKind: windows
+            releaseBase: windows-x64
             rustTarget: none
             sidecarTarget: x86_64-pc-windows-msvc
             artifactName: local-convert-windows-x64
@@ -33,6 +35,8 @@ jobs:
           - name: Linux x64
             platform: ubuntu-22.04
             args: ""
+            packageKind: linux
+            releaseBase: linux-x64
             rustTarget: none
             sidecarTarget: x86_64-unknown-linux-gnu
             artifactName: local-convert-linux-x64
@@ -40,6 +44,8 @@ jobs:
           - name: macOS Intel
             platform: macos-13
             args: "--target x86_64-apple-darwin"
+            packageKind: macos
+            releaseBase: macos-intel
             rustTarget: x86_64-apple-darwin
             sidecarTarget: x86_64-apple-darwin
             artifactName: local-convert-macos-intel
@@ -47,6 +53,8 @@ jobs:
           - name: macOS Apple Silicon
             platform: macos-14
             args: "--target aarch64-apple-darwin"
+            packageKind: macos
+            releaseBase: macos-apple-silicon
             rustTarget: aarch64-apple-darwin
             sidecarTarget: aarch64-apple-darwin
             artifactName: local-convert-macos-apple-silicon
@@ -97,24 +105,74 @@ jobs:
       - name: Build Tauri app
         run: npm run tauri build -- ${{ matrix.args }}
 
-      - name: List generated bundle files
+      - name: Resolve release label
+        id: release_label
         shell: pwsh
         run: |
-          $files = Get-ChildItem -Path src-tauri/target -Recurse -File -ErrorAction SilentlyContinue |
-            Where-Object { $_.FullName -match "[\\/]bundle[\\/]" } |
-            Select-Object FullName, Length
+          $packageVersion = node -p "require('./package.json').version"
 
-          if (-not $files) {
+          if ($packageVersion -match '^(\d+)\.(\d+)\.0-(.+)$') {
+            $releaseLabel = "v$($Matches[1]).$($Matches[2])-$($Matches[3])"
+          } else {
+            $releaseLabel = "v$packageVersion"
+          }
+
+          "packageVersion=$packageVersion" >> $env:GITHUB_OUTPUT
+          "releaseLabel=$releaseLabel" >> $env:GITHUB_OUTPUT
+
+      - name: Package release files
+        id: package_release_files
+        shell: pwsh
+        run: |
+          $bundleFiles = Get-ChildItem -Path src-tauri/target -Recurse -File -ErrorAction SilentlyContinue |
+            Where-Object { $_.FullName -match "[\\/]bundle[\\/]" } |
+            Sort-Object FullName
+
+          if (-not $bundleFiles) {
             throw "No Tauri bundle files were found under src-tauri/target/**/bundle."
           }
 
-          $files | Format-Table -AutoSize
+          $releaseDir = Join-Path $env:RUNNER_TEMP "release-files"
+          New-Item -ItemType Directory -Force -Path $releaseDir | Out-Null
+
+          $releaseBaseName = "local-convert-${{ steps.release_label.outputs.releaseLabel }}-${{ matrix.releaseBase }}"
+
+          function Copy-BundleFile([string]$pattern, [string]$destinationName) {
+            $file = $bundleFiles |
+              Where-Object { $_.Name -like $pattern } |
+              Select-Object -First 1
+
+            if (-not $file) {
+              throw "Could not find a bundle file matching '$pattern'."
+            }
+
+            Copy-Item -LiteralPath $file.FullName -Destination (Join-Path $releaseDir $destinationName) -Force
+          }
+
+          switch ('${{ matrix.packageKind }}') {
+            'windows' {
+              Copy-BundleFile '*-setup.exe' "$releaseBaseName-setup.exe"
+              Copy-BundleFile '*.msi' "$releaseBaseName-installer.msi"
+            }
+            'linux' {
+              Copy-BundleFile '*.AppImage' "$releaseBaseName.AppImage"
+              Copy-BundleFile '*.deb' "$releaseBaseName.deb"
+              Copy-BundleFile '*.rpm' "$releaseBaseName.rpm"
+            }
+            'macos' {
+              Copy-BundleFile '*.dmg' "$releaseBaseName.dmg"
+            }
+            default {
+              throw "Unsupported package kind: ${{ matrix.packageKind }}"
+            }
+          }
+
+          Get-ChildItem -Path $releaseDir -File | Select-Object Name, FullName, Length | Format-Table -AutoSize
+          "path=$releaseDir" >> $env:GITHUB_OUTPUT
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifactName }}
-          path: |
-            src-tauri/target/release/bundle/**/*
-            src-tauri/target/*/release/bundle/**/*
+          name: ${{ matrix.artifactName }}-${{ steps.release_label.outputs.releaseLabel }}
+          path: ${{ steps.package_release_files.outputs.path }}
           if-no-files-found: error

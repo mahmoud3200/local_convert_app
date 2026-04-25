@@ -94,26 +94,28 @@ export function GlobalSettingsDialog({
         <SettingsSectionNav
           activeSection={activeTab}
           sections={tabs}
-          onSectionChange={setActiveTab}
+          onSectionChange={(section) => setActiveTab(section)}
         />
 
-        <div className="min-h-0 overflow-auto rounded-panel border border-app-border bg-app-subtle p-4">
-          {activeMediaKind ? (
-            <DefaultConversionSettingsPanel
-              kind={activeMediaKind}
-              capabilities={capabilities}
-              settings={draftSettingsByKind[activeMediaKind]}
-              onAdvancedChange={updateAdvanced}
-              onFormatChange={updateFormat}
-              onPresetChange={updatePreset}
-            />
-          ) : (
-            <AppearanceSettingsPanel
-              resolvedTheme={resolvedTheme}
-              themePreference={themePreference}
-              onThemePreferenceChange={setThemePreference}
-            />
-          )}
+        <div className="min-h-0 overflow-hidden rounded-panel border border-app-border bg-app-subtle p-1">
+          <div className="h-full overflow-auto rounded-[calc(var(--radius-panel)-0.25rem)] px-4 py-4 pr-3 scrollbar-gutter-stable">
+            {activeMediaKind ? (
+              <DefaultConversionSettingsPanel
+                kind={activeMediaKind}
+                capabilities={capabilities}
+                settings={draftSettingsByKind[activeMediaKind]}
+                onAdvancedChange={updateAdvanced}
+                onFormatChange={updateFormat}
+                onPresetChange={updatePreset}
+              />
+            ) : (
+              <AppearanceSettingsPanel
+                resolvedTheme={resolvedTheme}
+                themePreference={themePreference}
+                onThemePreferenceChange={setThemePreference}
+              />
+            )}
+          </div>
         </div>
       </div>
     </ConverterDialogShell>

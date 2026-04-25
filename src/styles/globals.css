@@ -18,6 +18,9 @@
   --error-soft: rgba(185, 28, 28, 0.14);
   --error-border: rgba(185, 28, 28, 0.34);
   --error-foreground: #ffffff;
+  --scrollbar-track: rgba(148, 163, 184, 0.16);
+  --scrollbar-thumb: rgba(51, 65, 85, 0.42);
+  --scrollbar-thumb-hover: rgba(29, 78, 216, 0.58);
   color: var(--foreground);
   background: var(--background);
 }
@@ -40,6 +43,9 @@
   --error-soft: rgba(248, 113, 113, 0.16);
   --error-border: rgba(252, 165, 165, 0.32);
   --error-foreground: #2b0a0a;
+  --scrollbar-track: rgba(148, 163, 184, 0.18);
+  --scrollbar-thumb: rgba(214, 224, 238, 0.34);
+  --scrollbar-thumb-hover: rgba(122, 182, 255, 0.58);
   color: var(--foreground);
   background: var(--background);
 }
@@ -86,18 +92,41 @@
 @layer base {
   * {
     box-sizing: border-box;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
   }
 
   *::-webkit-scrollbar {
-    width: 0;
-    height: 0;
-    display: none;
+    width: 0.8rem;
+    height: 0.8rem;
   }
 
-  html {
-    color-scheme: light;
+  *::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+    border: 0.1875rem solid transparent;
+    border-radius: 999px;
+    background-clip: padding-box;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border: 0.1875rem solid transparent;
+    border-radius: 999px;
+    background-clip: padding-box;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
+    border: 0.1875rem solid transparent;
+    background-clip: padding-box;
+  }
+
+  *::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  .scrollbar-gutter-stable {
+    scrollbar-gutter: stable;
   }
 
   body {
@@ -132,14 +161,13 @@
     left: 0.75rem;
     height: 0.1875rem;
     border-radius: 999px 999px 0 0;
-    background:
-      linear-gradient(
-        115deg,
-        color-mix(in srgb, var(--accent) 24%, transparent) 0 28%,
-        var(--accent) 28% 48%,
-        color-mix(in srgb, var(--accent) 24%, transparent) 48% 76%,
-        var(--accent) 76% 96%
-      );
+    background: linear-gradient(
+      115deg,
+      color-mix(in srgb, var(--accent) 24%, transparent) 0 28%,
+      var(--accent) 28% 48%,
+      color-mix(in srgb, var(--accent) 24%, transparent) 48% 76%,
+      var(--accent) 76% 96%
+    );
     background-size: 3rem 100%;
     box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 50%, transparent);
     animation: file-row-progress-sweep 0.9s linear infinite;

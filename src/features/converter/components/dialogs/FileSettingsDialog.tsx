@@ -67,76 +67,78 @@ export function FileSettingsDialog({
       onClose={onClose}
     >
       <div className="h-full overflow-hidden px-6 py-5">
-        <div className="h-full overflow-auto rounded-panel border border-app-border bg-app-subtle p-4">
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-sm font-semibold text-app-fg">
-                {file.kind} settings
-              </h3>
-              <p className="mt-1 text-sm text-app-muted">
-                Settings update only this file and do not affect the rest of
-                the queue.
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <h4 className="text-sm font-semibold text-app-fg">
-                Output format
-              </h4>
-              {showsBrowserVideoLimit ? (
-                <p className="rounded-panel border border-app-border bg-app-control px-4 py-3 text-sm text-app-muted">
-                  Browser video exports keep the original format to avoid slow
-                  format conversion. Use the desktop app when you need full
-                  video format changes or heavier edits.
-                </p>
-              ) : null}
-              <Select
-                value={draft.draftSettings.format}
-                options={formatOptions}
-                onValueChange={(value) =>
-                  draft.changeFormat(value as OutputFormat)
-                }
-              />
-            </div>
-
-            <div className="space-y-3">
+        <div className="h-full overflow-hidden rounded-panel border border-app-border bg-app-subtle p-1">
+          <div className="h-full overflow-auto rounded-[calc(var(--radius-panel)-0.25rem)] px-4 py-4 pr-3 scrollbar-gutter-stable">
+            <div className="space-y-6">
               <div>
-                <h4 className="text-sm font-semibold text-app-fg">Presets</h4>
+                <h3 className="text-sm font-semibold text-app-fg">
+                  {file.kind} settings
+                </h3>
                 <p className="mt-1 text-sm text-app-muted">
-                  Presets are shortcuts. Editing advanced values turns this file
-                  into a custom setup.
+                  Settings update only this file and do not affect the rest of
+                  the queue.
                 </p>
               </div>
-              {canUsePresets ? (
-                <PresetOptionCards
-                  customMessage="This file is currently using a custom configuration."
-                  options={presetOptions}
-                  selectedPreset={draft.draftSettings.preset}
-                  onSelect={draft.changePreset}
-                />
-              ) : (
-                <p className="rounded-panel border border-app-border bg-app-control px-4 py-3 text-sm text-app-muted">
-                  Presets are not available for browser because the advanced
-                  controls they would change are disabled.
-                </p>
-              )}
-            </div>
 
-            <div className="space-y-4">
-              <div>
+              <div className="space-y-2">
                 <h4 className="text-sm font-semibold text-app-fg">
-                  Advanced settings
+                  Output format
                 </h4>
-                <p className="mt-1 text-sm text-app-muted">
-                  Only controls valid for {file.kind} conversion are shown.
-                </p>
+                {showsBrowserVideoLimit ? (
+                  <p className="rounded-panel border border-app-border bg-app-control px-4 py-3 text-sm text-app-muted">
+                    Browser video exports keep the original format to avoid slow
+                    format conversion. Use the desktop app when you need full
+                    video format changes or heavier edits.
+                  </p>
+                ) : null}
+                <Select
+                  value={draft.draftSettings.format}
+                  options={formatOptions}
+                  onValueChange={(value) =>
+                    draft.changeFormat(value as OutputFormat)
+                  }
+                />
               </div>
-              <AdvancedSettingsForm
-                kind={file.kind}
-                capabilities={capabilities}
-                settings={draft.draftSettings.advanced}
-                onChange={draft.changeAdvanced}
-              />
+
+              <div className="space-y-3">
+                <div>
+                  <h4 className="text-sm font-semibold text-app-fg">Presets</h4>
+                  <p className="mt-1 text-sm text-app-muted">
+                    Presets are shortcuts. Editing advanced values turns this file
+                    into a custom setup.
+                  </p>
+                </div>
+                {canUsePresets ? (
+                  <PresetOptionCards
+                    customMessage="This file is currently using a custom configuration."
+                    options={presetOptions}
+                    selectedPreset={draft.draftSettings.preset}
+                    onSelect={draft.changePreset}
+                  />
+                ) : (
+                  <p className="rounded-panel border border-app-border bg-app-control px-4 py-3 text-sm text-app-muted">
+                    Presets are not available for browser because the advanced
+                    controls they would change are disabled.
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <h4 className="text-sm font-semibold text-app-fg">
+                    Advanced settings
+                  </h4>
+                  <p className="mt-1 text-sm text-app-muted">
+                    Only controls valid for {file.kind} conversion are shown.
+                  </p>
+                </div>
+                <AdvancedSettingsForm
+                  kind={file.kind}
+                  capabilities={capabilities}
+                  settings={draft.draftSettings.advanced}
+                  onChange={draft.changeAdvanced}
+                />
+              </div>
             </div>
           </div>
         </div>

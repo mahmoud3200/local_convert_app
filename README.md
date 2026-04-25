@@ -171,6 +171,13 @@ The UI uses Tailwind v4 with semantic CSS variables in [`src/styles/globals.css`
 
 This keeps theme switching simple and keeps component classes tied to semantic meaning instead of hardcoded color values.
 
+### 10. Web Analytics
+
+The web version uses Vercel Analytics, as it is deployed on Vercel.  
+Implementation: [`src/app/WebsiteAnalytics.tsx`](src/app/WebsiteAnalytics.tsx)
+
+- Analytics are intentionally disabled in the desktop app to keep it fully local and avoid unexpected network activity.
+
 ## Folder structure
 
 The most important parts of the repo are:
