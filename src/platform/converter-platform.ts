@@ -21,6 +21,7 @@ export interface ConverterPlatformServices {
     mimeType: string;
     previewLimitBytes: number;
   }): Promise<string | null>;
+  openExternalUrl(url: string): Promise<void>;
   pickNativeFiles(options: {
     extensions: string[];
     previewLimitBytes: number;

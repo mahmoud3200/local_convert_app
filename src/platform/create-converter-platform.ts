@@ -13,6 +13,7 @@ import {
   createDownloadableOutput,
 } from "@/platform/output/web-output";
 import { notifyConversionComplete } from "@/platform/notifications/conversion-notifications";
+import { openExternalUrl } from "@/platform/open-external-url";
 import { setSleepPrevention } from "@/platform/power/sleep-prevention";
 import { isTauriRuntime } from "@/platform/tauri-runtime";
 
@@ -26,6 +27,7 @@ export function createConverterPlatform(): ConverterPlatformServices {
     loadNativePreviewUrl: ({ path, mimeType, previewLimitBytes }) =>
       loadNativePreviewUrl(path, mimeType, previewLimitBytes),
     notifyConversionComplete,
+    openExternalUrl,
     pickNativeFiles: ({ extensions, previewLimitBytes }) =>
       pickNativeFiles(extensions, previewLimitBytes),
     saveDownloadableOutput,

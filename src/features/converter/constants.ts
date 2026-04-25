@@ -9,3 +9,6 @@ export const FFMPEG_DESKTOP_NOTICE_DISMISSED_STORAGE_KEY =
 
 export const DESKTOP_QUEUE_STORAGE_KEY =
   "local-convert:desktop-queue:v1";
+
+export const PROJECT_GITHUB_URL =
+  "https://github.com/mahmoud3200/local_convert_app";

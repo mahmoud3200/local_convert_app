@@ -1,7 +1,8 @@
-import { Settings2 } from "lucide-react";
+import { ExternalLink, Settings2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FFMPEG_DESKTOP_NOTICE_DISMISSED_STORAGE_KEY } from "@/features/converter/constants";
+import { PROJECT_GITHUB_URL } from "@/features/converter/constants";
 import { useToast } from "@/hooks/useToast";
 import { useConverterWorkspace } from "@/features/converter/hooks/useConverterWorkspace";
 import { useDismissedFlag } from "@/features/converter/hooks/useDismissedFlag";
@@ -77,6 +78,19 @@ export function ConverterScreen({ platform }: ConverterScreenProps) {
     setPreviewFileId(fileId);
   }
 
+  async function handleOpenRepository() {
+    try {
+      await platform.openExternalUrl(PROJECT_GITHUB_URL);
+    } catch (error) {
+      console.error(error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Could not open the project repository.",
+      );
+    }
+  }
+
   return (
     <>
       <ConverterHeader />
@@ -138,7 +152,11 @@ export function ConverterScreen({ platform }: ConverterScreenProps) {
         </div>
       </section>
 
-      <div className="fixed bottom-4 left-4 z-30 md:bottom-6 md:left-6">
+      <div className="fixed bottom-4 left-4 z-30 flex flex-col gap-2 md:bottom-6 md:left-6">
+        <Button variant="secondary" onClick={handleOpenRepository}>
+          <ExternalLink className="h-4 w-4" />
+          GitHub
+        </Button>
         <Button
           variant="secondary"
           onClick={() => setIsGlobalSettingsOpen(true)}
