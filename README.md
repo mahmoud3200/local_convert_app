@@ -2,8 +2,8 @@
 
 Local Convert is a privacy-first local file converter built as a single codebase that runs in two environments:
 
-- Web: React + FFmpeg WASM for lighter, browser-safe work
-- Desktop: Tauri v2 + native FFmpeg for broader format support and heavier jobs
+- Web: React + FFmpeg WASM for lighter, browser-safe work: (https://local-convert-app.vercel.app/)
+- Desktop: Tauri v2 + native FFmpeg for broader format support and heavier: (https://github.com/mahmoud3200/local_convert_app/releases/tag/v1.0-beta)
 
 The project is intentionally a one-page utility, not a marketing site and not a routed app.
 (If i ever needed to do a marketing site i'll do a vanilla html, css, js landing page and route the app and the landing page using NGINX or refactor the repo to into next.js)
