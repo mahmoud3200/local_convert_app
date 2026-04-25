@@ -76,6 +76,14 @@ export class TauriEngine implements ConverterEngine {
     }
   }
 
+  async cancel(jobId: string) {
+    if (!isTauriRuntime()) {
+      return;
+    }
+
+    await invoke("cancel_conversion", { jobId });
+  }
+
   async convert(
     request: ConvertRequest,
     onProgress?: (progress: ConvertProgress) => void,
@@ -93,6 +101,7 @@ export class TauriEngine implements ConverterEngine {
 
       const result = await invoke<TauriPathConvertResponse>("convert_file_path", {
         request: {
+          jobId: request.jobId,
           inputPath: request.nativePath,
           fileName: request.fileName,
           kind: request.kind,
@@ -128,6 +137,7 @@ export class TauriEngine implements ConverterEngine {
 
     const result = await invoke<TauriConvertResponse>("convert_file", {
       request: {
+        jobId: request.jobId,
         fileName: request.fileName,
         kind: request.kind,
         outputFormat: request.outputFormat,

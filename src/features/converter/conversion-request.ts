@@ -9,13 +9,17 @@ export function createConvertRequest(
   file: ManagedConversionFile,
   settings: FileConversionSettings,
 ): ConvertRequest {
+  const outputFormat =
+    settings.format === "original" ? file.extension : settings.format;
+
   return {
+    jobId: file.id,
     file: file.file,
     nativePath: file.nativePath,
     fileName: file.name,
     fileSize: file.size,
     kind: file.kind,
-    outputFormat: settings.format,
+    outputFormat,
     options: {
       ...getSizeOptions(file, settings.advanced),
       bitrate:

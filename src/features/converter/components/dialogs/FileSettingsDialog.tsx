@@ -34,6 +34,8 @@ export function FileSettingsDialog({
   const formatOptions = getFormatOptionsForKind(file.kind, capabilities);
   const presetOptions = getPresetOptionsForKind(file.kind);
   const canUsePresets = hasPresetControlsForKind(file.kind, capabilities);
+  const showsBrowserVideoLimit =
+    capabilities.runtime === "web-wasm" && file.kind === "video";
   const draft = useFileSettingsDraft({ file, settings });
 
   function handleSave() {
@@ -81,6 +83,13 @@ export function FileSettingsDialog({
               <h4 className="text-sm font-semibold text-app-fg">
                 Output format
               </h4>
+              {showsBrowserVideoLimit ? (
+                <p className="rounded-panel border border-app-border bg-app-control px-4 py-3 text-sm text-app-muted">
+                  Browser video exports keep the original format to avoid slow
+                  format conversion. Use the desktop app when you need full
+                  video format changes or heavier edits.
+                </p>
+              ) : null}
               <Select
                 value={draft.draftSettings.format}
                 options={formatOptions}

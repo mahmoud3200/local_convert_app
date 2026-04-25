@@ -13,8 +13,18 @@ import type { EngineCapabilities } from "@/platform/converter/engine";
 
 type SettingsState = Record<string, FileConversionSettings>;
 
-export function useConversionSettings(capabilities?: EngineCapabilities) {
-  const [storedSettingsByFileId, setStoredSettingsByFileId] = useState<SettingsState>({});
+export function useConversionSettings(
+  capabilities?: EngineCapabilities,
+  initialSettingsByFileId: SettingsState = {},
+) {
+  const [storedSettingsByFileId, setStoredSettingsByFileId] = useState<SettingsState>(() =>
+    Object.fromEntries(
+      Object.entries(initialSettingsByFileId).map(([fileId, settings]) => [
+        fileId,
+        cloneFileSettings(settings),
+      ]),
+    ),
+  );
   const [defaultSettingsByKind, setDefaultSettingsByKind] = useState<
     Record<MediaKind, FileConversionSettings>
   >(() => loadStoredDefaults(capabilities));
@@ -50,6 +60,17 @@ export function useConversionSettings(capabilities?: EngineCapabilities) {
 
   function clearSettings() {
     setStoredSettingsByFileId({});
+  }
+
+  function restoreSettings(nextSettingsByFileId: SettingsState) {
+    setStoredSettingsByFileId(
+      Object.fromEntries(
+        Object.entries(nextSettingsByFileId).map(([fileId, settings]) => [
+          fileId,
+          cloneFileSettings(settings),
+        ]),
+      ),
+    );
   }
 
   function registerFiles(nextFiles: Array<ManagedConversionFile>) {
@@ -90,5 +111,6 @@ export function useConversionSettings(capabilities?: EngineCapabilities) {
     removeSettings,
     replaceSettings,
     replaceDefaultSettings,
+    restoreSettings,
   };
 }

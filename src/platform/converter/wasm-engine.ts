@@ -34,8 +34,12 @@ const AUDIO_OUTPUT_FORMATS = new Set([
 
 const VIDEO_OUTPUT_FORMATS = new Set([
   "mp4",
+  "webm",
+  "mov",
+  "mkv",
+  "avi",
 ]);
-const WASM_VIDEO_TRANSCODE_LIMIT_BYTES = 150 * 1024 * 1024;
+const WASM_VIDEO_PROCESS_LIMIT_BYTES = 150 * 1024 * 1024;
 
 export const WASM_ENGINE_CAPABILITIES: EngineCapabilities = {
   runtime: "web-wasm",
@@ -43,7 +47,7 @@ export const WASM_ENGINE_CAPABILITIES: EngineCapabilities = {
   outputs: {
     image: ["png", "jpg", "jpeg", "webp", "gif", "bmp", "tif", "tiff"],
     audio: ["mp3", "wav", "aac", "ogg", "flac", "m4a"],
-    video: ["mp4"],
+    video: ["original"],
   },
   advancedSettings: {
     image: {
@@ -79,7 +83,7 @@ export const WASM_ENGINE_CAPABILITIES: EngineCapabilities = {
   },
   notes: [
     "AVIF output is disabled because the bundled WASM core does not include an AV1 encoder.",
-    "Browser video output is intentionally limited to MP4 to avoid unreliable heavy transcoding.",
+    "Browser video keeps the original format to avoid unreliable heavy transcoding.",
   ],
 };
 
@@ -89,6 +93,8 @@ export class WasmEngine implements ConverterEngine {
   private ffmpeg: FFmpeg | null = null;
   private loadPromise: Promise<void> | null = null;
   private conversionQueue: Promise<unknown> = Promise.resolve();
+  private activeJobId: string | null = null;
+  private cancelledJobIds = new Set<string>();
 
   async init() {
     if (this.ffmpeg?.loaded) {
@@ -114,10 +120,27 @@ export class WasmEngine implements ConverterEngine {
     return conversion;
   }
 
+  async cancel(jobId: string) {
+    this.cancelledJobIds.add(jobId);
+
+    if (this.activeJobId !== jobId) {
+      return;
+    }
+
+    const activeFfmpeg = this.ffmpeg;
+    this.activeJobId = null;
+    this.ffmpeg = null;
+    this.loadPromise = null;
+    this.conversionQueue = Promise.resolve();
+    activeFfmpeg?.terminate();
+  }
+
   private async convertInternal(
     request: ConvertRequest,
     onProgress?: (progress: ConvertProgress) => void,
   ) {
+    this.throwIfCancelled(request.jobId);
+
     const sourceFile = request.file;
     if (!sourceFile) {
       throw new Error("Browser conversion requires a browser File object.");
@@ -125,14 +148,20 @@ export class WasmEngine implements ConverterEngine {
 
     onProgress?.({ phase: "loading", message: "Loading FFmpeg..." });
     await this.init();
+    this.throwIfCancelled(request.jobId);
 
     if (!this.ffmpeg) {
       throw new Error("Wasm engine failed to initialize.");
     }
 
-    const format = normalizeFormat(request.outputFormat);
+    const requestedFormat = normalizeFormat(request.outputFormat);
+    const format =
+      requestedFormat === "original"
+        ? getInputExtension(request.fileName)
+        : requestedFormat;
     assertSupportedFormat(request.kind, format);
-    assertWithinWasmLimits(request, format);
+    assertWithinWasmLimits(request);
+    this.throwIfCancelled(request.jobId);
 
     onProgress?.({ phase: "preparing", message: "Preparing file..." });
 
@@ -161,18 +190,25 @@ export class WasmEngine implements ConverterEngine {
       });
     };
 
-    await this.ffmpeg.writeFile(inputName, await fetchFile(sourceFile));
-    this.ffmpeg.on("progress", progressHandler);
-    this.ffmpeg.on("log", logHandler);
+    const ffmpeg = this.ffmpeg;
+    if (!ffmpeg) {
+      throw new Error("Wasm engine failed to initialize.");
+    }
+
+    this.activeJobId = request.jobId;
 
     try {
+      await ffmpeg.writeFile(inputName, await fetchFile(sourceFile));
+      ffmpeg.on("progress", progressHandler);
+      ffmpeg.on("log", logHandler);
+
       onProgress?.({ phase: "converting", message: "Converting..." });
 
       const args = this.buildArgs(inputName, fsOutputName, request, format);
       let exitCode = 0;
 
       try {
-        exitCode = await this.ffmpeg.exec(args);
+        exitCode = await ffmpeg.exec(args);
       } catch (error) {
         throw new Error(
           buildFfmpegFailureMessage(request, format, logMessages, undefined, error),
@@ -183,7 +219,7 @@ export class WasmEngine implements ConverterEngine {
         throw new Error(buildFfmpegFailureMessage(request, format, logMessages, exitCode));
       }
 
-      const data = await this.ffmpeg.readFile(fsOutputName);
+      const data = await ffmpeg.readFile(fsOutputName);
       const bytes =
         typeof data === "string" ? new TextEncoder().encode(data) : new Uint8Array(data);
       const mimeType = this.getMimeType(format);
@@ -196,10 +232,23 @@ export class WasmEngine implements ConverterEngine {
         mimeType,
       };
     } finally {
-      this.ffmpeg.off("progress", progressHandler);
-      this.ffmpeg.off("log", logHandler);
-      await this.deleteIfExists(inputName);
-      await this.deleteIfExists(fsOutputName);
+      try {
+        ffmpeg.off("progress", progressHandler);
+        ffmpeg.off("log", logHandler);
+      } catch {
+        // The worker may already be terminated by cancellation.
+      }
+
+      if (this.ffmpeg === ffmpeg) {
+        await this.deleteIfExists(ffmpeg, inputName);
+        await this.deleteIfExists(ffmpeg, fsOutputName);
+      }
+
+      if (this.activeJobId === request.jobId) {
+        this.activeJobId = null;
+      }
+
+      this.cancelledJobIds.delete(request.jobId);
     }
   }
 
@@ -207,6 +256,13 @@ export class WasmEngine implements ConverterEngine {
     const ffmpeg = new FFmpeg();
     await ffmpeg.load({ coreURL, wasmURL });
     this.ffmpeg = ffmpeg;
+  }
+
+  private throwIfCancelled(jobId: string) {
+    if (this.cancelledJobIds.has(jobId)) {
+      this.cancelledJobIds.delete(jobId);
+      throw new Error("Conversion cancelled.");
+    }
   }
 
   private buildArgs(
@@ -365,13 +421,9 @@ export class WasmEngine implements ConverterEngine {
     return `${base}.${outputFormat}`;
   }
 
-  private async deleteIfExists(path: string) {
-    if (!this.ffmpeg) {
-      return;
-    }
-
+  private async deleteIfExists(ffmpeg: FFmpeg, path: string) {
     try {
-      await this.ffmpeg.deleteFile(path);
+      await ffmpeg.deleteFile(path);
     } catch {
       // The file may not exist after a failed conversion.
     }
@@ -439,14 +491,10 @@ function assertSupportedFormat(kind: MediaKind, format: string) {
   throw new Error(`Unsupported ${kind} output format: ${format}`);
 }
 
-function assertWithinWasmLimits(request: ConvertRequest, format: string) {
-  if (
-    request.kind === "video" &&
-    !canCopyVideoStreams(request, format) &&
-    request.fileSize > WASM_VIDEO_TRANSCODE_LIMIT_BYTES
-  ) {
+function assertWithinWasmLimits(request: ConvertRequest) {
+  if (request.kind === "video" && request.fileSize > WASM_VIDEO_PROCESS_LIMIT_BYTES) {
     throw new Error(
-      "This video is too large for reliable browser WASM transcoding. Use the desktop Tauri engine for large video files.",
+      "This video is too large for reliable browser processing. Use the desktop app for larger video files.",
     );
   }
 }
@@ -578,10 +626,11 @@ function getVideoBitrate(request: ConvertRequest) {
 
 function canCopyVideoStreams(request: ConvertRequest, format: string) {
   const inputExtension = getInputExtension(request.fileName);
+  const canKeepSameContainer = format === inputExtension;
   const canSafelyRemuxToMp4 =
     format === "mp4" && ["mp4", "m4v", "mov"].includes(inputExtension);
 
-  return canSafelyRemuxToMp4 && !(
+  return (canKeepSameContainer || canSafelyRemuxToMp4) && !(
     request.options?.width ||
     request.options?.height ||
     request.options?.fps ||

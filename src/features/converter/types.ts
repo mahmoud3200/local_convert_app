@@ -5,6 +5,7 @@ export type ThemePreference = "system" | "light" | "dark";
 export type ResolvedTheme = "light" | "dark";
 
 export type OutputFormat =
+  | "original"
   | "png"
   | "jpg"
   | "jpeg"

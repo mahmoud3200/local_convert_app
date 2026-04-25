@@ -25,6 +25,8 @@ export const SUPPORTED_INPUTS: Record<MediaKind, SupportedInputDefinition> = {
   },
 };
 
+const WEB_WASM_UNSUPPORTED_INPUT_EXTENSIONS = new Set(["avif"]);
+
 export const IMAGE_FORMAT_OPTIONS = createFormatOptions("image");
 export const AUDIO_FORMAT_OPTIONS = createFormatOptions("audio");
 export const VIDEO_FORMAT_OPTIONS = createFormatOptions("video");
@@ -68,20 +70,20 @@ export function isOutputFormatValidForKind(
   );
 }
 
-export function getAcceptedFileTypes() {
-  return getAllSupportedInputExtensions()
+export function getAcceptedFileTypes(capabilities?: EngineCapabilities) {
+  return getAllSupportedInputExtensions(capabilities)
     .map((extension) => `.${extension}`)
     .join(",");
 }
 
-export function getAllSupportedInputExtensions() {
-  return Object.values(SUPPORTED_INPUTS).flatMap(
+export function getAllSupportedInputExtensions(capabilities?: EngineCapabilities) {
+  return Object.values(getSupportedInputs(capabilities)).flatMap(
     (definition) => definition.extensions,
   );
 }
 
-export function getSupportedUploadLabels() {
-  return Object.values(SUPPORTED_INPUTS).map(
+export function getSupportedUploadLabels(capabilities?: EngineCapabilities) {
+  return Object.values(getSupportedInputs(capabilities)).map(
     (definition) => {
       const label = definition.label === "Audio" ? "Audio" : `${definition.label}s`;
 
@@ -100,28 +102,32 @@ function createFormatOptionsFromExtensions(
   extensions: string[],
 ): SelectOptionValue<OutputFormat>[] {
   return extensions.map((extension) => ({
-    label: extension.toUpperCase(),
+    label: extension === "original" ? "Original format" : extension.toUpperCase(),
     value: extension as OutputFormat,
   }));
 }
 
-export function getDetectedFileInfo(file: File): DetectedFileInfo {
-  return getDetectedFileInfoFromName(file.name, file.type);
+export function getDetectedFileInfo(
+  file: File,
+  capabilities?: EngineCapabilities,
+): DetectedFileInfo {
+  return getDetectedFileInfoFromName(file.name, file.type, capabilities);
 }
 
 export function getDetectedFileInfoFromName(
   fileName: string,
   mimeType = "",
+  capabilities?: EngineCapabilities,
 ): DetectedFileInfo {
-  const extension = fileName.split(".").pop()?.toLowerCase() ?? "";
+  const extension = getFileExtension(fileName);
+  const supportedInputs = getSupportedInputs(capabilities);
 
-  for (const [kind, definition] of Object.entries(SUPPORTED_INPUTS) as Array<
+  for (const [kind, definition] of Object.entries(supportedInputs) as Array<
     [MediaKind, SupportedInputDefinition]
   >) {
-    const matchesMime = definition.mimePrefixes.some((prefix) => mimeType.startsWith(prefix));
     const matchesExtension = definition.extensions.includes(extension);
 
-    if (matchesMime || matchesExtension) {
+    if (matchesExtension) {
       return {
         kind,
         extension,
@@ -130,9 +136,57 @@ export function getDetectedFileInfoFromName(
     }
   }
 
+  if (!extension) {
+    for (const [kind, definition] of Object.entries(supportedInputs) as Array<
+      [MediaKind, SupportedInputDefinition]
+    >) {
+      const matchesMime = definition.mimePrefixes.some((prefix) =>
+        mimeType.startsWith(prefix),
+      );
+
+      if (matchesMime) {
+        return {
+          kind,
+          extension,
+          label: definition.label,
+        };
+      }
+    }
+  }
+
   return {
     kind: "unknown",
     extension,
     label: "Unknown file",
   };
+}
+
+function getFileExtension(fileName: string) {
+  const dotIndex = fileName.lastIndexOf(".");
+
+  if (dotIndex <= 0 || dotIndex === fileName.length - 1) {
+    return "";
+  }
+
+  return fileName.slice(dotIndex + 1).toLowerCase();
+}
+
+function getSupportedInputs(
+  capabilities?: EngineCapabilities,
+): Record<MediaKind, SupportedInputDefinition> {
+  if (capabilities?.runtime !== "web-wasm") {
+    return SUPPORTED_INPUTS;
+  }
+
+  return Object.fromEntries(
+    Object.entries(SUPPORTED_INPUTS).map(([kind, definition]) => [
+      kind,
+      {
+        ...definition,
+        extensions: definition.extensions.filter(
+          (extension) => !WEB_WASM_UNSUPPORTED_INPUT_EXTENSIONS.has(extension),
+        ),
+      },
+    ]),
+  ) as Record<MediaKind, SupportedInputDefinition>;
 }

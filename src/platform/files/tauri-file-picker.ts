@@ -8,6 +8,27 @@ type NativeFileMetadata = {
   size: number;
 };
 
+type NativePathExistence = {
+  path: string;
+  exists: boolean;
+};
+
+export async function getExistingNativePaths(paths: string[]) {
+  if (!isTauriRuntime() || paths.length === 0) {
+    return new Set<string>();
+  }
+
+  const results = await invoke<NativePathExistence[]>("check_native_paths", {
+    paths,
+  });
+
+  return new Set(
+    results
+      .filter((result) => result.exists)
+      .map((result) => result.path),
+  );
+}
+
 export async function pickNativeFiles(
   extensions: string[],
   previewLimitBytes: number,
@@ -46,6 +67,7 @@ export async function pickNativeFiles(
     path: file.path,
     name: file.fileName,
     size: file.size,
+    metadataUrl: convertFileSrc(file.path),
     previewUrl:
       file.size <= previewLimitBytes ? convertFileSrc(file.path) : null,
   }));

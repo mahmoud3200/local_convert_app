@@ -39,6 +39,8 @@ export function DefaultConversionSettingsPanel({
   const formatOptions = getFormatOptionsForKind(kind, capabilities);
   const presetOptions = getPresetOptionsForKind(kind);
   const canUsePresets = hasPresetControlsForKind(kind, capabilities);
+  const showsBrowserVideoLimit =
+    capabilities.runtime === "web-wasm" && kind === "video";
 
   return (
     <div className="space-y-6">
@@ -53,6 +55,12 @@ export function DefaultConversionSettingsPanel({
 
       <div className="space-y-2">
         <h4 className="text-sm font-semibold text-app-fg">Output format</h4>
+        {showsBrowserVideoLimit ? (
+          <p className="rounded-panel border border-app-border bg-app-control px-4 py-3 text-sm text-app-muted">
+            Browser video stays in the original format. Desktop supports full
+            video format conversion and larger editing jobs.
+          </p>
+        ) : null}
         <Select
           value={settings.format}
           options={formatOptions}

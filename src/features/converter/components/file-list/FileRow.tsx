@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { buildSettingsSummary } from "@/features/converter/settings-summary";
+import { cn } from "@/lib/utils";
 import type {
   FileConversionSettings,
   ManagedConversionFile,
@@ -63,8 +64,16 @@ export function FileRow({
   onOpenSettings,
   onRemove,
 }: FileRowProps) {
+  const isConverting = file.status === "converting";
+  const fileMetadata = getFileMetadataParts(file);
+
   return (
-    <div className="rounded-panel shadow-s bg-app-subtle px-4 py-4">
+    <div
+      className={cn(
+        "relative overflow-hidden rounded-panel bg-app-subtle px-4 py-4 shadow-s",
+        isConverting && "file-row-converting",
+      )}
+    >
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <div className="flex min-w-0 items-center gap-3">
           <div className="rounded-control shadow-s bg-app-control p-3 text-app-muted">
@@ -90,14 +99,18 @@ export function FileRow({
               <StatusBadge status={file.status} />
             </div>
             <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-app-muted">
-              <span>{file.sizeLabel}</span>
-              <span>{file.kind}</span>
-              <span>{file.type}</span>
-              <span>{file.detailsLabel}</span>
+              {fileMetadata.map((detail) => (
+                <span key={detail}>{detail}</span>
+              ))}
             </div>
             {settings ? (
               <p className="mt-2 text-xs text-app-fg">
-                {buildSettingsSummary(file.kind, settings, capabilities)}
+                {buildSettingsSummary(
+                  file.kind,
+                  settings,
+                  capabilities,
+                  file.extension,
+                )}
               </p>
             ) : null}
           </div>
@@ -168,4 +181,32 @@ export function FileRow({
       </div>
     </div>
   );
+}
+
+function getFileMetadataParts(file: ManagedConversionFile) {
+  const detailsLabel = getDistinctDetailsLabel(file);
+
+  return [file.sizeLabel, file.kind, file.type, detailsLabel].filter(
+    (detail): detail is string => Boolean(detail),
+  );
+}
+
+function getDistinctDetailsLabel(file: ManagedConversionFile) {
+  const label = file.detailsLabel.trim();
+
+  if (!label) {
+    return null;
+  }
+
+  const normalizedLabel = label.toLowerCase();
+
+  if (
+    normalizedLabel === file.kind ||
+    normalizedLabel === `${file.kind}s` ||
+    normalizedLabel === file.type.toLowerCase()
+  ) {
+    return null;
+  }
+
+  return label;
 }

@@ -24,15 +24,21 @@ export function DesktopAppCallout({ isVisible }: DesktopAppCalloutProps) {
             <MonitorDown aria-hidden="true" className="h-5 w-5" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold">Need more power?</h3>
+            <h3 className="text-sm font-semibold mb-1">
+              Unlock full power with the desktop app
+            </h3>
             <p className="text-sm text-app-muted">
-              Use the desktop app for larger files and smoother saving.
+              Browser conversion is optimized for speed, which limits video
+              processing. The desktop app removes those limits, convert videos
+              to any supported format, handle large files, and fine-tune output
+              with advanced controls like quality, compression, bitrate, and
+              frame rate. It also supports formats like AVIF for images.
             </p>
           </div>
         </div>
 
         <Button
-          className="w-full md:w-auto"
+          className="min-w-37.5"
           disabled={!desktopDownloadUrl}
           variant="secondary"
           onClick={() => {

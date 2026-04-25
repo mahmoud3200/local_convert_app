@@ -3,5 +3,6 @@ export interface NativeSelectedFile {
   name: string;
   size: number;
   type?: string;
+  metadataUrl?: string | null;
   previewUrl: string | null;
 }

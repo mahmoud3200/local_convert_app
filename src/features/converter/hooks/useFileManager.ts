@@ -7,13 +7,17 @@ import {
 } from "@/features/converter/format-support";
 import { loadMediaDimensions } from "@/platform/preview/media-dimensions";
 import type { NativeSelectedFile } from "@/platform/files/types";
+import type { EngineCapabilities } from "@/platform/converter/engine";
 import type {
   ManagedConversionFile,
   ManagedFileStatus,
 } from "@/features/converter/types";
 
-export function useFileManager() {
-  const [files, setFiles] = useState<ManagedConversionFile[]>([]);
+export function useFileManager(
+  capabilities?: EngineCapabilities,
+  initialFiles: ManagedConversionFile[] = [],
+) {
+  const [files, setFiles] = useState<ManagedConversionFile[]>(initialFiles);
   const [message, setMessage] = useState<string>("");
   const filesRef = useRef<ManagedConversionFile[]>([]);
 
@@ -52,7 +56,7 @@ export function useFileManager() {
     let rejectedCount = 0;
 
     for (const file of candidateFiles) {
-      const detected = getDetectedFileInfo(file);
+      const detected = getDetectedFileInfo(file, capabilities);
       if (detected.kind === "unknown") {
         rejectedCount += 1;
         continue;
@@ -95,10 +99,6 @@ export function useFileManager() {
     }
 
     for (const file of supportedFiles) {
-      if (file.size > MAX_PREVIEW_FILE_SIZE_BYTES) {
-        continue;
-      }
-
       if (file.kind === "image" && file.previewUrl) {
         loadMediaDimensions("image", file.previewUrl).then(
           ({ width, height, detailsLabel }) => {
@@ -114,10 +114,15 @@ export function useFileManager() {
       }
 
       if (file.kind === "video" && file.file) {
-        const mediaUrl = URL.createObjectURL(file.file);
+        const mediaUrl = file.previewUrl ?? URL.createObjectURL(file.file);
+        const shouldRevokeMetadataUrl = mediaUrl !== file.previewUrl;
+
         loadMediaDimensions("video", mediaUrl).then(
           ({ width, height, detailsLabel }) => {
-            URL.revokeObjectURL(mediaUrl);
+            if (shouldRevokeMetadataUrl) {
+              URL.revokeObjectURL(mediaUrl);
+            }
+
             updateFile(file.id, (currentFile) => ({
               ...currentFile,
               naturalWidth: width,
@@ -134,10 +139,17 @@ export function useFileManager() {
 
   function addNativeFiles(inputFiles: NativeSelectedFile[]) {
     const supportedFiles: ManagedConversionFile[] = [];
+    const nativeFileByPath = new Map(
+      inputFiles.map((file) => [file.path, file]),
+    );
     let rejectedCount = 0;
 
     for (const file of inputFiles) {
-      const detected = getDetectedFileInfoFromName(file.name, file.type);
+      const detected = getDetectedFileInfoFromName(
+        file.name,
+        file.type,
+        capabilities,
+      );
       if (detected.kind === "unknown") {
         rejectedCount += 1;
         continue;
@@ -174,12 +186,30 @@ export function useFileManager() {
     }
 
     for (const file of supportedFiles) {
-      if (file.size > MAX_PREVIEW_FILE_SIZE_BYTES) {
-        continue;
+      if (file.kind === "image" && file.previewUrl) {
+        loadMediaDimensions(file.kind, file.previewUrl).then(
+          ({ width, height, detailsLabel }) => {
+            updateFile(file.id, (currentFile) => ({
+              ...currentFile,
+              naturalWidth: width,
+              naturalHeight: height,
+              detailsLabel,
+            }));
+          },
+        );
       }
 
-      if ((file.kind === "image" || file.kind === "video") && file.previewUrl) {
-        loadMediaDimensions(file.kind, file.previewUrl).then(
+      if (file.kind === "video") {
+        const selectedFile = file.nativePath
+          ? nativeFileByPath.get(file.nativePath)
+          : null;
+        const mediaUrl = file.previewUrl ?? selectedFile?.metadataUrl;
+
+        if (!mediaUrl) {
+          continue;
+        }
+
+        loadMediaDimensions("video", mediaUrl).then(
           ({ width, height, detailsLabel }) => {
             updateFile(file.id, (currentFile) => ({
               ...currentFile,
@@ -193,6 +223,18 @@ export function useFileManager() {
     }
 
     return supportedFiles;
+  }
+
+  function restoreFiles(restoredFiles: ManagedConversionFile[]) {
+    setFiles((current) => {
+      for (const file of current) {
+        if (file.previewUrl && file.shouldRevokePreviewUrl) {
+          URL.revokeObjectURL(file.previewUrl);
+        }
+      }
+
+      return restoredFiles;
+    });
   }
 
   function removeFile(id: string) {
@@ -232,6 +274,7 @@ export function useFileManager() {
     clearAllFiles,
     getFile,
     removeFile,
+    restoreFiles,
     updateFileStatus,
   };
 }

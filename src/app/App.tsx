@@ -1,12 +1,31 @@
 import { Toaster } from "react-hot-toast";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ConverterScreen } from "@/features/converter/components/layout/ConverterScreen";
+import { supportsBrowserConversionRuntime } from "@/features/converter/check-browser-support";
 import { createConverterPlatform } from "@/platform/create-converter-platform";
 import { WebsiteAnalytics } from "./WebsiteAnalytics";
+const desktopDownloadUrl = (
+  import.meta as ImportMeta & {
+    env?: { VITE_DESKTOP_DOWNLOAD_URL?: string };
+  }
+).env?.VITE_DESKTOP_DOWNLOAD_URL;
 
 const converterPlatform = createConverterPlatform(); // either wasm converter for the browser or native ffmpeg converter for the native desktop app (taurti v2)
 
 function App() {
+  const isUnsupportedWebBrowser =
+    !converterPlatform.usesNativeFilePicker &&
+    !supportsBrowserConversionRuntime;
+
+  if (isUnsupportedWebBrowser) {
+    return (
+      <pre>
+        Browser conversion is not supported in this browser. Use a modern
+        browser or download the desktop app at "{desktopDownloadUrl}"
+      </pre>
+    );
+  }
+
   return (
     <TooltipProvider delayDuration={150}>
       <main className="bg-app-main flex min-h-screen items-center justify-center px-4 py-6 text-app-fg md:px-8 md:py-8">

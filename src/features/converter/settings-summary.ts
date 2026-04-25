@@ -5,8 +5,9 @@ export function buildSettingsSummary(
   kind: MediaKind,
   settings: FileConversionSettings,
   capabilities?: EngineCapabilities,
+  inputExtension?: string,
 ) {
-  const parts = [`Output ${settings.format.toUpperCase()}`];
+  const parts = [getOutputLabel(settings, inputExtension)];
   const settingCapabilities = capabilities?.advancedSettings[kind];
   const canShowQuality = settingCapabilities?.quality ?? true;
   const canShowResolution = settingCapabilities?.resolution ?? true;
@@ -82,6 +83,19 @@ export function buildSettingsSummary(
   }
 
   return finishSummary(parts, settings);
+}
+
+function getOutputLabel(
+  settings: FileConversionSettings,
+  inputExtension?: string,
+) {
+  if (settings.format !== "original") {
+    return `Output ${settings.format.toUpperCase()}`;
+  }
+
+  const extensionLabel = inputExtension ? ` (.${inputExtension.toUpperCase()})` : "";
+
+  return `Output original format${extensionLabel}`;
 }
 
 function finishSummary(parts: string[], settings: FileConversionSettings) {

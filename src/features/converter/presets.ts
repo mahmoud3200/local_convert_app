@@ -56,16 +56,21 @@ export const DEFAULT_CATEGORY_SETTINGS: Record<MediaKind, FileConversionSettings
   },
   audio: {
     format: "mp3",
-    preset: null,
+    preset: "balanced",
     advanced: {
       ...DEFAULT_ADVANCED_SETTINGS,
+      quality: 86,
+      bitrate: 192,
     },
   },
   video: {
     format: "mp4",
-    preset: null,
+    preset: "balanced",
     advanced: {
       ...DEFAULT_ADVANCED_SETTINGS,
+      quality: 86,
+      bitrate: 10,
+      resolution: "1080p",
     },
   },
 };

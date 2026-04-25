@@ -1,4 +1,9 @@
+import { useEffect, useState } from "react";
 import { MAX_PREVIEW_FILE_SIZE_BYTES } from "@/features/converter/constants";
+import {
+  loadStoredDesktopQueue,
+  saveStoredDesktopQueue,
+} from "@/features/converter/desktop-queue-storage";
 import {
   getAcceptedFileTypes,
   getAllSupportedInputExtensions,
@@ -16,7 +21,10 @@ import type { ConverterPlatformServices } from "@/platform/converter-platform";
 
 export function useConverterWorkspace(platform: ConverterPlatformServices) {
   const engine = platform.engine;
-  const fileManager = useFileManager();
+  const [isDesktopQueueHydrated, setIsDesktopQueueHydrated] = useState(
+    !platform.usesNativeFilePicker,
+  );
+  const fileManager = useFileManager(engine.capabilities);
   const settingsManager = useConversionSettings(engine.capabilities);
   const processManager = useConversionProcess({
     engine,
@@ -25,6 +33,79 @@ export function useConverterWorkspace(platform: ConverterPlatformServices) {
     platform,
   });
 
+  useEffect(() => {
+    if (!platform.usesNativeFilePicker || isDesktopQueueHydrated) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function hydrateDesktopQueue() {
+      const restoredQueue = loadStoredDesktopQueue(engine.capabilities);
+      const existingPaths = await platform.getExistingNativePaths(
+        restoredQueue.files
+          .map((file) => file.nativePath)
+          .filter((path): path is string => Boolean(path)),
+      );
+
+      if (cancelled) {
+        return;
+      }
+
+      const files = restoredQueue.files.filter(
+        (file) => file.nativePath && existingPaths.has(file.nativePath),
+      );
+      const fileIds = new Set(files.map((file) => file.id));
+      const settingsByFileId = Object.fromEntries(
+        Object.entries(restoredQueue.settingsByFileId).filter(([fileId]) =>
+          fileIds.has(fileId),
+        ),
+      );
+
+      fileManager.restoreFiles(files);
+      settingsManager.restoreSettings(settingsByFileId);
+      setIsDesktopQueueHydrated(true);
+    }
+
+    void hydrateDesktopQueue().catch((error: unknown) => {
+      console.warn("Could not restore the desktop queue:", error);
+
+      if (!cancelled) {
+        setIsDesktopQueueHydrated(true);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    engine.capabilities,
+    fileManager,
+    isDesktopQueueHydrated,
+    platform,
+    settingsManager,
+  ]);
+
+  useEffect(() => {
+    if (!platform.usesNativeFilePicker) {
+      return;
+    }
+
+    if (!isDesktopQueueHydrated) {
+      return;
+    }
+
+    saveStoredDesktopQueue(
+      fileManager.files,
+      settingsManager.settingsByFileId,
+    );
+  }, [
+    fileManager.files,
+    isDesktopQueueHydrated,
+    platform.usesNativeFilePicker,
+    settingsManager.settingsByFileId,
+  ]);
+
   function addFiles(inputFiles: FileList | File[]) {
     const newFiles = fileManager.addFiles(inputFiles);
     settingsManager.registerFiles(newFiles);
@@ -32,15 +113,18 @@ export function useConverterWorkspace(platform: ConverterPlatformServices) {
 
   async function browseNativeFiles() {
     const selectedFiles = await platform.pickNativeFiles({
-      extensions: getAllSupportedInputExtensions(),
+      extensions: getAllSupportedInputExtensions(engine.capabilities),
       previewLimitBytes: MAX_PREVIEW_FILE_SIZE_BYTES,
     });
     const newFiles = fileManager.addNativeFiles(selectedFiles);
     settingsManager.registerFiles(newFiles);
   }
 
-  function resetFileConversionState(fileId: string) {
-    processManager.clearFileProcess(fileId, "ready");
+  function resetFileConversionState(
+    fileId: string,
+    options?: { discardPending?: boolean },
+  ) {
+    processManager.clearFileProcess(fileId, "ready", options);
   }
 
   async function convert(fileId: string) {
@@ -110,14 +194,14 @@ export function useConverterWorkspace(platform: ConverterPlatformServices) {
   }
 
   function remove(fileId: string) {
-    resetFileConversionState(fileId);
+    resetFileConversionState(fileId, { discardPending: true });
     settingsManager.removeSettings(fileId);
     fileManager.removeFile(fileId);
   }
 
   function clearAll() {
     for (const file of fileManager.files) {
-      resetFileConversionState(file.id);
+      resetFileConversionState(file.id, { discardPending: true });
     }
 
     settingsManager.clearSettings();
@@ -143,7 +227,7 @@ export function useConverterWorkspace(platform: ConverterPlatformServices) {
   }
 
   return {
-    acceptedFileTypes: getAcceptedFileTypes(),
+    acceptedFileTypes: getAcceptedFileTypes(engine.capabilities),
     capabilities: engine.capabilities,
     defaultSettingsByKind: settingsManager.defaultSettingsByKind,
     files: fileManager.files,
@@ -152,7 +236,7 @@ export function useConverterWorkspace(platform: ConverterPlatformServices) {
     message: fileManager.message,
     downloadsByFileId: processManager.downloadsByFileId,
     settingsByFileId: settingsManager.settingsByFileId,
-    supportedUploadLabels: getSupportedUploadLabels(),
+    supportedUploadLabels: getSupportedUploadLabels(engine.capabilities),
     usesNativeFilePicker: platform.usesNativeFilePicker,
     canConvertAll: fileManager.files.some(
       (file) => file.status === "ready" || file.status === "error",

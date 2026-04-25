@@ -1,0 +1,42 @@
+Local Convert - Third-Party Notices
+
+This project uses third-party open-source software. This notice is provided for
+attribution and distribution transparency. It is not legal advice.
+
+FFmpeg
+------
+
+Desktop builds of Local Convert use FFmpeg for native media conversion.
+FFmpeg is a project of the FFmpeg developers:
+
+  https://ffmpeg.org
+
+The current Windows desktop sidecar is based on the Gyan FFmpeg essentials
+build:
+
+  https://www.gyan.dev/ffmpeg/builds/
+
+The bundled Windows FFmpeg binary reports GPL-enabled configuration, including
+--enable-gpl and GPL-related codec libraries such as libx264 and libx265.
+Treat bundled desktop FFmpeg binaries as GPLv3 for distribution planning unless
+you replace them with a different verified build.
+
+FFmpeg source code and license information:
+
+  https://ffmpeg.org/download.html
+  https://ffmpeg.org/legal.html
+
+Gyan build source links and checksums are published on the Gyan FFmpeg builds
+page for each release/build package.
+
+Additional project notes are documented in:
+
+  ffmpeg-licensing.md
+
+ffmpeg.wasm
+-----------
+
+The browser version uses the ffmpeg.wasm npm packages for local browser-side
+conversion:
+
+  https://github.com/ffmpegwasm/ffmpeg.wasm

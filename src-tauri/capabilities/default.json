@@ -9,6 +9,7 @@
     "core:default",
     "dialog:allow-open",
     "dialog:allow-save",
-    "fs:allow-write-file"
+    "fs:allow-write-file",
+    "notification:default"
   ]
 }

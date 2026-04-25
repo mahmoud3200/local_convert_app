@@ -25,7 +25,10 @@ export function useConversionProcess({
 }: UseConversionProcessOptions) {
   const toast = useToast();
   const activeFileIdsRef = useRef(new Set(files.map((file) => file.id)));
+  const cancellingFileIdsRef = useRef(new Set<string>());
   const downloadsRef = useRef<Record<string, DownloadableOutput>>({});
+  const runningFileIdsRef = useRef(new Set<string>());
+  const sleepPreventionActiveRef = useRef(false);
   const [storedDownloadsByFileId, setStoredDownloadsByFileId] = useState<
     Record<string, DownloadableOutput>
   >({});
@@ -39,12 +42,37 @@ export function useConversionProcess({
   }, [storedDownloadsByFileId]);
 
   useEffect(() => {
+    const runningFileIds = runningFileIdsRef.current;
+
+    function cancelRunningConversions() {
+      for (const fileId of runningFileIds) {
+        void engine.cancel(fileId).catch((error: unknown) => {
+          console.warn(`Could not cancel conversion for ${fileId}:`, error);
+        });
+      }
+
+      void platform.cancelAllConversions().catch((error: unknown) => {
+        console.warn("Could not cancel native conversions:", error);
+      });
+
+      void platform.setSleepPrevention(false).catch((error: unknown) => {
+        console.warn("Could not release sleep prevention:", error);
+      });
+    }
+
+    window.addEventListener("beforeunload", cancelRunningConversions);
+    window.addEventListener("pagehide", cancelRunningConversions);
+
     return () => {
+      window.removeEventListener("beforeunload", cancelRunningConversions);
+      window.removeEventListener("pagehide", cancelRunningConversions);
+      cancelRunningConversions();
+
       for (const output of Object.values(downloadsRef.current)) {
         platform.cleanupDownloadableOutput(output);
       }
     };
-  }, [platform]);
+  }, [engine, platform]);
 
   const activeIds = useMemo(() => new Set(files.map((file) => file.id)), [files]);
 
@@ -59,7 +87,16 @@ export function useConversionProcess({
   function clearFileProcess(
     fileId: string,
     nextStatus: ManagedFileStatus = "ready",
+    options: { cancelActive?: boolean; discardPending?: boolean } = {},
   ) {
+    if (options.discardPending) {
+      cancellingFileIdsRef.current.add(fileId);
+    }
+
+    if (options.cancelActive ?? true) {
+      cancelFileConversion(fileId);
+    }
+
     setStoredDownloadsByFileId((current) => {
       const next = { ...current };
       const existing = next[fileId];
@@ -75,6 +112,32 @@ export function useConversionProcess({
     onStatusChange(fileId, nextStatus);
   }
 
+  function cancelFileConversion(fileId: string) {
+    if (!runningFileIdsRef.current.has(fileId)) {
+      return;
+    }
+
+    cancellingFileIdsRef.current.add(fileId);
+
+    void engine.cancel(fileId).catch((error: unknown) => {
+      console.warn(`Could not cancel conversion for ${fileId}:`, error);
+    });
+  }
+
+  function syncSleepPrevention() {
+    const shouldPreventSleep = runningFileIdsRef.current.size > 0;
+
+    if (sleepPreventionActiveRef.current === shouldPreventSleep) {
+      return;
+    }
+
+    sleepPreventionActiveRef.current = shouldPreventSleep;
+
+    void platform.setSleepPrevention(shouldPreventSleep).catch((error: unknown) => {
+      console.warn("Could not update sleep prevention:", error);
+    });
+  }
+
   async function startConversion(
     file: ManagedConversionFile,
     settings: FileConversionSettings,
@@ -86,6 +149,13 @@ export function useConversionProcess({
     items: Array<{ file: ManagedConversionFile; settings: FileConversionSettings }>,
   ) {
     for (const item of items) {
+      if (
+        !activeFileIdsRef.current.has(item.file.id) ||
+        cancellingFileIdsRef.current.has(item.file.id)
+      ) {
+        continue;
+      }
+
       await convertOne(item.file, item.settings);
     }
   }
@@ -94,28 +164,51 @@ export function useConversionProcess({
     file: ManagedConversionFile,
     settings: FileConversionSettings,
   ) {
-    clearFileProcess(file.id, "ready");
+    if (
+      !activeFileIdsRef.current.has(file.id) ||
+      cancellingFileIdsRef.current.has(file.id)
+    ) {
+      return;
+    }
+
+    cancellingFileIdsRef.current.delete(file.id);
+    clearFileProcess(file.id, "ready", { cancelActive: false });
+    runningFileIdsRef.current.add(file.id);
+    syncSleepPrevention();
     onStatusChange(file.id, "converting");
 
     try {
       const result = await engine.convert(createConvertRequest(file, settings));
 
-      if (!activeFileIdsRef.current.has(file.id)) {
+      if (
+        !activeFileIdsRef.current.has(file.id) ||
+        cancellingFileIdsRef.current.has(file.id)
+      ) {
         return;
       }
 
+      const output = platform.createDownloadableOutput(result);
+
       setStoredDownloadsByFileId((current) => ({
         ...current,
-        [file.id]: platform.createDownloadableOutput(result),
+        [file.id]: output,
       }));
       onStatusChange(file.id, "done");
+      notifyConversionComplete(platform, file, output);
     } catch (error) {
       console.error(error);
 
-      if (activeFileIdsRef.current.has(file.id)) {
+      if (
+        activeFileIdsRef.current.has(file.id) &&
+        !cancellingFileIdsRef.current.has(file.id)
+      ) {
         toast.error(getConversionErrorMessage(file, settings, error));
         onStatusChange(file.id, "error");
       }
+    } finally {
+      runningFileIdsRef.current.delete(file.id);
+      cancellingFileIdsRef.current.delete(file.id);
+      syncSleepPrevention();
     }
   }
 
@@ -166,6 +259,23 @@ export function useConversionProcess({
     startBatchConversion,
     startConversion,
   };
+}
+
+function notifyConversionComplete(
+  platform: ConverterPlatformServices,
+  file: ManagedConversionFile,
+  output: DownloadableOutput,
+) {
+  void platform
+    .notifyConversionComplete({
+      inputFileName: file.name,
+      outputFileName: output.fileName,
+    })
+    .then((result) => {
+      if (result.status === "failed") {
+        console.warn(`Could not show desktop notification: ${result.error}`);
+      }
+    });
 }
 
 function getConversionErrorMessage(

@@ -21,6 +21,7 @@ export type EngineCapabilities = {
 };
 
 export type ConvertRequest = {
+  jobId: string;
   file?: File;
   nativePath?: string;
   fileName: string;
@@ -55,6 +56,7 @@ export type ConvertResult = {
 export interface ConverterEngine {
   readonly capabilities: EngineCapabilities;
   init(): Promise<void>;
+  cancel(jobId: string): Promise<void>;
   convert(
     request: ConvertRequest,
     onProgress?: (progress: ConvertProgress) => void,

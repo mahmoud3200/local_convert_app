@@ -1,11 +1,14 @@
 import { Settings2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { FFMPEG_DESKTOP_NOTICE_DISMISSED_STORAGE_KEY } from "@/features/converter/constants";
 import { useToast } from "@/hooks/useToast";
 import { useConverterWorkspace } from "@/features/converter/hooks/useConverterWorkspace";
+import { useDismissedFlag } from "@/features/converter/hooks/useDismissedFlag";
 import { useThemePreference } from "@/features/converter/hooks/useThemePreference";
 import { ConverterHeader } from "./ConverterHeader";
 import { DesktopAppCallout } from "./DesktopAppCallout";
+import { FfmpegDesktopNotice } from "./FfmpegDesktopNotice";
 import { FileList } from "../file-list/FileList";
 import { FilePreviewDialog } from "../dialogs/FilePreviewDialog";
 import { FileSettingsDialog } from "../dialogs/FileSettingsDialog";
@@ -24,6 +27,9 @@ export function ConverterScreen({ platform }: ConverterScreenProps) {
   const workspace = useConverterWorkspace(platform);
   const theme = useThemePreference();
   const toast = useToast();
+  const ffmpegNotice = useDismissedFlag(
+    FFMPEG_DESKTOP_NOTICE_DISMISSED_STORAGE_KEY,
+  );
 
   const previewFile = previewFileId ? workspace.getFile(previewFileId) : null;
   const settingsFile = settingsFileId
@@ -90,6 +96,12 @@ export function ConverterScreen({ platform }: ConverterScreenProps) {
           />
 
           <DesktopAppCallout isVisible={!workspace.usesNativeFilePicker} />
+          <FfmpegDesktopNotice
+            isVisible={
+              workspace.usesNativeFilePicker && !ffmpegNotice.isDismissed
+            }
+            onDismiss={ffmpegNotice.dismiss}
+          />
 
           {workspace.files.length > 0 ? (
             <FileList
