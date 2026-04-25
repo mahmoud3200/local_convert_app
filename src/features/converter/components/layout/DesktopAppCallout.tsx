@@ -1,11 +1,6 @@
 import { MonitorDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-const desktopDownloadUrl = (
-  import.meta as ImportMeta & {
-    env?: { VITE_DESKTOP_DOWNLOAD_URL?: string };
-  }
-).env?.VITE_DESKTOP_DOWNLOAD_URL;
+import { DESKTOP_DOWNLOAD_LINK } from "@/features/converter/constants";
 
 interface DesktopAppCalloutProps {
   isVisible: boolean;
@@ -39,11 +34,15 @@ export function DesktopAppCallout({ isVisible }: DesktopAppCalloutProps) {
 
         <Button
           className="min-w-37.5"
-          disabled={!desktopDownloadUrl}
+          disabled={!DESKTOP_DOWNLOAD_LINK}
           variant="secondary"
           onClick={() => {
-            if (desktopDownloadUrl) {
-              window.open(desktopDownloadUrl, "_blank", "noopener,noreferrer");
+            if (DESKTOP_DOWNLOAD_LINK) {
+              window.open(
+                DESKTOP_DOWNLOAD_LINK,
+                "_blank",
+                "noopener,noreferrer",
+              );
             }
           }}
         >

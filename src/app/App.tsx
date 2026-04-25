@@ -4,11 +4,7 @@ import { ConverterScreen } from "@/features/converter/components/layout/Converte
 import { supportsBrowserConversionRuntime } from "@/features/converter/check-browser-support";
 import { createConverterPlatform } from "@/platform/create-converter-platform";
 import { WebsiteAnalytics } from "./WebsiteAnalytics";
-const desktopDownloadUrl = (
-  import.meta as ImportMeta & {
-    env?: { VITE_DESKTOP_DOWNLOAD_URL?: string };
-  }
-).env?.VITE_DESKTOP_DOWNLOAD_URL;
+import { DESKTOP_DOWNLOAD_LINK } from "@/features/converter/constants";
 
 const converterPlatform = createConverterPlatform(); // either wasm converter for the browser or native ffmpeg converter for the native desktop app (taurti v2)
 
@@ -21,7 +17,7 @@ function App() {
     return (
       <pre>
         Browser conversion is not supported in this browser. Use a modern
-        browser or download the desktop app at "{desktopDownloadUrl}"
+        browser or download the desktop app at "{DESKTOP_DOWNLOAD_LINK}"
       </pre>
     );
   }
