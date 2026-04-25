@@ -94,6 +94,51 @@ export function getSupportedUploadLabels(capabilities?: EngineCapabilities) {
   );
 }
 
+export function getMimeTypeForExtension(extension: string) {
+  switch (extension.toLowerCase()) {
+    case "png":
+      return "image/png";
+    case "jpg":
+    case "jpeg":
+      return "image/jpeg";
+    case "webp":
+      return "image/webp";
+    case "avif":
+      return "image/avif";
+    case "gif":
+      return "image/gif";
+    case "bmp":
+      return "image/bmp";
+    case "tif":
+    case "tiff":
+      return "image/tiff";
+    case "mp3":
+      return "audio/mpeg";
+    case "wav":
+      return "audio/wav";
+    case "aac":
+      return "audio/aac";
+    case "ogg":
+      return "audio/ogg";
+    case "flac":
+      return "audio/flac";
+    case "m4a":
+      return "audio/mp4";
+    case "mp4":
+      return "video/mp4";
+    case "webm":
+      return "video/webm";
+    case "mov":
+      return "video/quicktime";
+    case "mkv":
+      return "video/x-matroska";
+    case "avi":
+      return "video/x-msvideo";
+    default:
+      return "application/octet-stream";
+  }
+}
+
 function createFormatOptions(kind: MediaKind): SelectOptionValue<OutputFormat>[] {
   return createFormatOptionsFromExtensions(SUPPORTED_INPUTS[kind].extensions);
 }

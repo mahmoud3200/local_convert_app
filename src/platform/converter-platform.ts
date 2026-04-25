@@ -16,6 +16,11 @@ export interface ConverterPlatformServices {
   cleanupDownloadableOutput(output: DownloadableOutput): void;
   createDownloadableOutput(result: ConvertResult): DownloadableOutput;
   getExistingNativePaths(paths: string[]): Promise<Set<string>>;
+  loadNativePreviewUrl(options: {
+    path: string;
+    mimeType: string;
+    previewLimitBytes: number;
+  }): Promise<string | null>;
   pickNativeFiles(options: {
     extensions: string[];
     previewLimitBytes: number;

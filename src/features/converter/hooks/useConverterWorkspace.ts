@@ -7,6 +7,7 @@ import {
 import {
   getAcceptedFileTypes,
   getAllSupportedInputExtensions,
+  getMimeTypeForExtension,
   getSupportedUploadLabels,
 } from "@/features/converter/format-support";
 import { sanitizeSettingsForKind } from "@/features/converter/settings-rules";
@@ -118,6 +119,29 @@ export function useConverterWorkspace(platform: ConverterPlatformServices) {
     });
     const newFiles = fileManager.addNativeFiles(selectedFiles);
     settingsManager.registerFiles(newFiles);
+  }
+
+  async function preparePreview(fileId: string) {
+    const file = fileManager.getFile(fileId);
+    if (
+      !file ||
+      file.previewUrl ||
+      file.file ||
+      !file.nativePath ||
+      file.size > MAX_PREVIEW_FILE_SIZE_BYTES
+    ) {
+      return;
+    }
+
+    const previewUrl = await platform.loadNativePreviewUrl({
+      path: file.nativePath,
+      mimeType: getMimeTypeForExtension(file.extension),
+      previewLimitBytes: MAX_PREVIEW_FILE_SIZE_BYTES,
+    });
+
+    if (previewUrl) {
+      fileManager.setFilePreview(fileId, previewUrl, true);
+    }
   }
 
   function resetFileConversionState(
@@ -254,6 +278,7 @@ export function useConverterWorkspace(platform: ConverterPlatformServices) {
       convertAll,
       download,
       downloadAll,
+      preparePreview,
       remove,
       saveSettings,
       saveDefaultSettings,

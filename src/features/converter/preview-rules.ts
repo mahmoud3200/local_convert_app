@@ -7,9 +7,5 @@ export function canPreviewFile(file: ManagedConversionFile) {
     return false;
   }
 
-  if (file.kind === "image") {
-    return Boolean(file.previewUrl);
-  }
-
-  return Boolean(file.previewUrl || file.file);
+  return Boolean(file.previewUrl || file.file || file.nativePath);
 }

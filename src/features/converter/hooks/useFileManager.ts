@@ -50,6 +50,28 @@ export function useFileManager(
     updateFile(id, (file) => ({ ...file, status }));
   }
 
+  function setFilePreview(
+    id: string,
+    previewUrl: string | null,
+    shouldRevokePreviewUrl: boolean,
+  ) {
+    updateFile(id, (file) => {
+      if (
+        file.previewUrl &&
+        file.previewUrl !== previewUrl &&
+        file.shouldRevokePreviewUrl
+      ) {
+        URL.revokeObjectURL(file.previewUrl);
+      }
+
+      return {
+        ...file,
+        previewUrl,
+        shouldRevokePreviewUrl,
+      };
+    });
+  }
+
   function addFiles(inputFiles: FileList | File[]) {
     const candidateFiles = Array.from(inputFiles);
     const supportedFiles: ManagedConversionFile[] = [];
@@ -275,6 +297,7 @@ export function useFileManager(
     getFile,
     removeFile,
     restoreFiles,
+    setFilePreview,
     updateFileStatus,
   };
 }

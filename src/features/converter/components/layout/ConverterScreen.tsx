@@ -67,6 +67,16 @@ export function ConverterScreen({ platform }: ConverterScreenProps) {
     }
   }
 
+  async function handleOpenPreview(fileId: string) {
+    try {
+      await workspace.actions.preparePreview(fileId);
+    } catch (error) {
+      console.error(error);
+    }
+
+    setPreviewFileId(fileId);
+  }
+
   return (
     <>
       <ConverterHeader />
@@ -116,7 +126,7 @@ export function ConverterScreen({ platform }: ConverterScreenProps) {
               onDownload={workspace.actions.download}
               onDownloadAll={workspace.actions.downloadAll}
               onClearAll={handleClearAll}
-              onOpenPreview={setPreviewFileId}
+              onOpenPreview={handleOpenPreview}
               onOpenSettings={setSettingsFileId}
               onRemove={handleRemove}
             />

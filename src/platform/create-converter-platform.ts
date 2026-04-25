@@ -2,6 +2,7 @@ import type { ConverterPlatformServices } from "@/platform/converter-platform";
 import { cancelAllConversions } from "@/platform/converter/cancel-all-conversions";
 import { createConverterEngine } from "@/platform/converter/create-engine";
 import { getExistingNativePaths } from "@/platform/files/tauri-file-picker";
+import { loadNativePreviewUrl } from "@/platform/files/tauri-file-picker";
 import { pickNativeFiles } from "@/platform/files/tauri-file-picker";
 import {
   saveDownloadableOutput,
@@ -22,6 +23,8 @@ export function createConverterPlatform(): ConverterPlatformServices {
     createDownloadableOutput,
     engine: createConverterEngine(),
     getExistingNativePaths,
+    loadNativePreviewUrl: ({ path, mimeType, previewLimitBytes }) =>
+      loadNativePreviewUrl(path, mimeType, previewLimitBytes),
     notifyConversionComplete,
     pickNativeFiles: ({ extensions, previewLimitBytes }) =>
       pickNativeFiles(extensions, previewLimitBytes),

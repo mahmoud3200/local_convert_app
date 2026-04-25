@@ -555,6 +555,25 @@ fn check_native_paths(paths: Vec<String>) -> Result<Vec<NativePathExistence>, St
 }
 
 #[tauri::command]
+fn read_native_preview(path: String, max_bytes: usize) -> Result<Vec<u8>, String> {
+    let file_path = PathBuf::from(&path);
+    let metadata = fs::metadata(&file_path)
+        .map_err(|error| format!("Could not inspect preview file: {error}"))?;
+
+    if !metadata.is_file() {
+        return Err(format!("Preview path is not a file: {path}"));
+    }
+
+    if metadata.len() > max_bytes as u64 {
+        return Err(format!(
+            "Preview file exceeds the allowed limit of {max_bytes} bytes."
+        ));
+    }
+
+    fs::read(&file_path).map_err(|error| format!("Could not read preview file: {error}"))
+}
+
+#[tauri::command]
 fn copy_generated_output(request: CopyGeneratedOutputRequest) -> Result<(), String> {
     let source_path = PathBuf::from(&request.source_path);
     assert_generated_output_path(&source_path)?;
@@ -1364,6 +1383,7 @@ pub fn run() {
             copy_generated_output,
             delete_generated_output,
             get_native_file_metadata,
+            read_native_preview,
             zip_generated_outputs
         ])
         .setup(|app| {
