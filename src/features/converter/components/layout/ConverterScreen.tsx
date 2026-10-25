@@ -86,50 +86,54 @@ export function ConverterScreen({ platform }: ConverterScreenProps) {
         />
 
         <FfmpegDesktopNotice
-          isVisible={workspace.usesNativeFilePicker && !ffmpegNotice.isDismissed}
+          isVisible={
+            workspace.usesNativeFilePicker && !ffmpegNotice.isDismissed
+          }
           onDismiss={ffmpegNotice.dismiss}
         />
 
-        <HomeHero />
+        <div className="my-auto flex flex-col gap-5 pt-[clamp(1.5rem,5dvh,4rem)]">
+          <HomeHero />
 
-        <div className="mt-12 md:mt-20">
-          {hasFiles ? (
-            <>
-              {workspace.message ? (
-                <p className="mb-4 text-sm text-app-error" role="status">
-                  {workspace.message}
-                </p>
-              ) : null}
-              <FileList
+          <div className="mt-[clamp(1.5rem,4.5dvh,4.5rem)]">
+            {hasFiles ? (
+              <>
+                {workspace.message ? (
+                  <p className="mb-4 text-sm text-app-error" role="status">
+                    {workspace.message}
+                  </p>
+                ) : null}
+                <FileList
+                  accept={workspace.acceptedFileTypes}
+                  capabilities={workspace.capabilities}
+                  canConvertAll={workspace.canConvertAll}
+                  canDownloadAll={workspace.canDownloadAll}
+                  downloadsByFileId={workspace.downloadsByFileId}
+                  files={workspace.files}
+                  isNativeBrowseEnabled={workspace.usesNativeFilePicker}
+                  settingsByFileId={workspace.settingsByFileId}
+                  onClearAll={handleClearAll}
+                  onConvert={workspace.actions.convert}
+                  onConvertAll={workspace.actions.convertAll}
+                  onDownload={workspace.actions.download}
+                  onDownloadAll={workspace.actions.downloadAll}
+                  onFilesSelect={workspace.actions.addFiles}
+                  onFormatChange={handleFormatChange}
+                  onNativeBrowse={handleNativeBrowse}
+                  onOpenSettings={setSettingsFileId}
+                  onRemove={handleRemove}
+                />
+              </>
+            ) : (
+              <UploadDropzone
                 accept={workspace.acceptedFileTypes}
-                capabilities={workspace.capabilities}
-                canConvertAll={workspace.canConvertAll}
-                canDownloadAll={workspace.canDownloadAll}
-                downloadsByFileId={workspace.downloadsByFileId}
-                files={workspace.files}
+                helperMessage={workspace.message}
                 isNativeBrowseEnabled={workspace.usesNativeFilePicker}
-                settingsByFileId={workspace.settingsByFileId}
-                onClearAll={handleClearAll}
-                onConvert={workspace.actions.convert}
-                onConvertAll={workspace.actions.convertAll}
-                onDownload={workspace.actions.download}
-                onDownloadAll={workspace.actions.downloadAll}
                 onFilesSelect={workspace.actions.addFiles}
-                onFormatChange={handleFormatChange}
                 onNativeBrowse={handleNativeBrowse}
-                onOpenSettings={setSettingsFileId}
-                onRemove={handleRemove}
               />
-            </>
-          ) : (
-            <UploadDropzone
-              accept={workspace.acceptedFileTypes}
-              helperMessage={workspace.message}
-              isNativeBrowseEnabled={workspace.usesNativeFilePicker}
-              onFilesSelect={workspace.actions.addFiles}
-              onNativeBrowse={handleNativeBrowse}
-            />
-          )}
+            )}
+          </div>
         </div>
       </div>
 

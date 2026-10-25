@@ -26,14 +26,14 @@ export function ConverterHeader({
         LoConvert
       </span>
 
-      <div className="flex items-center gap-2 sm:gap-[15px]">
+      <div className="flex items-center gap-2 sm:gap-3.75">
         {showInstallApp ? (
           <Button
-            className="h-[41px] gap-1.5 rounded-full border-white/90 bg-transparent px-3 text-[16px] font-normal text-white hover:border-white hover:bg-white/10 hover:text-white sm:gap-[5px] sm:px-5 sm:text-[18px]"
+            className="h-10.25 gap-1.5 rounded-full border-white/90 bg-transparent px-3 text-[16px] font-normal text-white hover:border-white hover:bg-white/10 hover:text-white sm:gap-[5px] sm:px-5 sm:text-[18px]"
             variant="secondary"
             onClick={onInstallApp}
           >
-            <ArrowDownToLine className="h-[18px] w-[18px] shrink-0" strokeWidth={2.4} />
+            <ArrowDownToLine className="size-4.5 shrink-0" strokeWidth={2.4} />
             <span className="hidden sm:inline">Install App</span>
           </Button>
         ) : null}
@@ -42,7 +42,7 @@ export function ConverterHeader({
           <TooltipTrigger asChild>
             <Button
               aria-label="Open preferences"
-              className="h-[41px] w-[41px] shrink-0 rounded-full text-white/75 hover:bg-white/10 hover:text-white"
+              className="size-10.25 shrink-0 rounded-full text-white/75 hover:bg-white/10 hover:text-white"
               size="icon"
               variant="ghost"
               onClick={onOpenPreferences}
@@ -57,7 +57,7 @@ export function ConverterHeader({
           <TooltipTrigger asChild>
             <Button
               aria-label="Open the LoConvert repository on GitHub"
-              className="h-[41px] w-[41px] shrink-0 rounded-full p-0 hover:bg-white/10"
+              className="size-10.25 shrink-0 rounded-full p-0 hover:bg-white/10"
               size="icon"
               variant="ghost"
               onClick={onOpenRepository}
@@ -65,7 +65,7 @@ export function ConverterHeader({
               <img
                 alt=""
                 aria-hidden="true"
-                className="h-[41px] w-[41px]"
+                className="size-10.25"
                 src={githubMark}
               />
             </Button>

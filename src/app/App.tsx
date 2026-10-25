@@ -39,7 +39,7 @@ function App() {
   return (
     <TooltipProvider delayDuration={150}>
       <main className="bg-app-main relative min-h-dvh overflow-hidden text-app-fg">
-        <div className="mx-auto flex min-h-dvh w-full max-w-421 flex-col px-5 pb-20 pt-6 sm:px-8 lg:pt-11.5">
+        <div className="mx-auto flex min-h-dvh w-full max-w-421 flex-col px-5 pt-6 pb-[clamp(1.25rem,3.5dvh,5rem)] sm:px-8 lg:pt-[clamp(1rem,3dvh,2rem)]">
           <ConverterScreen platform={converterPlatform} />
         </div>
       </main>
