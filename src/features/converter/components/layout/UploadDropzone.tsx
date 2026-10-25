@@ -18,8 +18,8 @@ export function UploadDropzone({
   onNativeBrowse,
 }: UploadDropzoneProps) {
   const dropzoneClassName = cn(
-    "group relative flex min-h-[clamp(15rem,40dvh,38.125rem)] max-w-[1350px] mx-auto cursor-pointer flex-col items-center justify-center rounded-[24px] border-[3px] px-6 py-[clamp(2rem,6dvh,3.5rem)] text-center backdrop-blur-sm transition-colors duration-200 focus-within:ring-2 focus-within:ring-app-accent/60 focus-within:ring-offset-2 focus-within:ring-offset-app-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent/60 focus-visible:ring-offset-2 focus-visible:ring-offset-app-bg md:rounded-[32px] md:px-10 md:py-[clamp(2.5rem,7dvh,4rem)]",
-    "border-white/[0.29] bg-[rgba(30,30,30,0.25)] shadow-[2px_5px_4px_0_rgba(255,255,255,0.3),3px_3px_4px_0_rgba(255,255,255,0.3)] hover:border-white/40 hover:bg-[rgba(30,30,30,0.35)]",
+    "group relative flex min-h-[clamp(15rem,40dvh,38.125rem)] max-w-[1350px] mx-auto cursor-pointer flex-col items-center justify-center rounded-[24px] border-[3px] px-6 py-[clamp(2rem,6dvh,3.5rem)] text-center backdrop-blur-sm transition-[background-color,border-color,box-shadow] duration-200 focus-within:ring-2 focus-within:ring-app-accent/60 focus-within:ring-offset-2 focus-within:ring-offset-app-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent/60 focus-visible:ring-offset-2 focus-visible:ring-offset-app-bg md:rounded-[32px] md:px-10 md:py-[clamp(2.5rem,7dvh,4rem)]",
+    "border-white/[0.29] bg-[rgba(30,30,30,0.25)] shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_24px_60px_-28px_rgba(0,0,0,0.85),0_0_60px_-30px_rgba(124,211,249,0.25)] hover:border-white/40 hover:bg-[rgba(30,30,30,0.35)] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_28px_70px_-28px_rgba(0,0,0,0.9),0_0_72px_-28px_rgba(124,211,249,0.32)]",
   );
 
   function handleNativeBrowse() {
