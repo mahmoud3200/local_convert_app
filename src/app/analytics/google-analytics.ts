@@ -31,8 +31,13 @@ export function loadGoogleAnalytics() {
   isGoogleAnalyticsLoaded = true;
 
   window.dataLayer = window.dataLayer ?? [];
-  window.gtag = function gtag(...args: unknown[]) {
-    window.dataLayer?.push(args);
+
+  // gtag.js only processes dataLayer entries that are `arguments` objects, which is
+  // what the official snippet pushes. Pushing a plain array makes gtag.js queue the
+  // command but never send the hit, so no page_view ever reaches Google Analytics.
+  window.gtag = function gtag() {
+    // eslint-disable-next-line prefer-rest-params
+    window.dataLayer?.push(arguments);
   };
 
   window.gtag("js", new Date());

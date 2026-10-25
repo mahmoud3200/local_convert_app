@@ -101,6 +101,8 @@ The Google Analytics loader:
 
 The script is only inserted once.
 
+`window.gtag` must push the `arguments` object into `dataLayer`, exactly like the official Google snippet. If it pushes a plain array instead, `gtag.js` queues the command but never sends the hit, so `gtag.js` loads and no `page_view` ever reaches Google Analytics. This is why the ESLint `prefer-rest-params` rule is disabled on that line.
+
 ## Troubleshooting
 
 **The cookie banner is not showing**
@@ -109,7 +111,9 @@ The script is only inserted once.
 
 **Analytics is not loading after accepting**
 
-Check the browser network panel for `googletagmanager.com`. Content blockers, privacy extensions, or a restrictive CSP can prevent the script from loading.
+Check the browser network panel for `googletagmanager.com` and `google-analytics.com/g/collect`. Content blockers, privacy extensions, or a restrictive CSP can prevent the script from loading.
+
+If `gtag.js` loads and `dataLayer` only contains `gtm.dom` and `gtm.load`, the `config` command was never processed. Verify that `window.gtag` pushes the `arguments` object and not an array.
 
 **The banner appears on desktop**
 
