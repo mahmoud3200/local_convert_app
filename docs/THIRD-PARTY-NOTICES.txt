@@ -1,5 +1,8 @@
 LoConvert - Third-Party Notices
 
+LoConvert's original source code is licensed under the Apache License 2.0.
+See the LICENSE file in the repository root.
+
 This project uses third-party open-source software. This notice is provided for
 attribution and distribution transparency. It is not legal advice.
 

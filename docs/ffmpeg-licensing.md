@@ -15,6 +15,8 @@ Before shipping a desktop installer, decide one distribution policy:
 - Bundle an LGPL-only FFmpeg build and comply with LGPL obligations.
 - Do not bundle FFmpeg; require a user-installed system FFmpeg and document that requirement.
 
+LoConvert's original source code is licensed under Apache 2.0, but that does not change the license of FFmpeg or of a bundled FFmpeg binary. Keep the project license and the FFmpeg obligations separate when preparing a release.
+
 This file is not legal advice. It is a technical checklist so we do not accidentally ship a native FFmpeg binary without reviewing license obligations.
 
 References:

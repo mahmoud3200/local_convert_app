@@ -4,6 +4,7 @@ import { ConverterScreen } from "@/features/converter/components/layout/Converte
 import { supportsBrowserConversionRuntime } from "@/platform/check-browser-support";
 import { createConverterPlatform } from "@/platform/create-converter-platform";
 import { WebsiteAnalytics } from "./WebsiteAnalytics";
+import { CookieConsentBanner } from "./CookieConsentBanner";
 import { DESKTOP_DOWNLOAD_LINK } from "@/features/converter/constants";
 
 const converterPlatform = createConverterPlatform(); // either wasm converter for the browser or native ffmpeg converter for the native desktop app (taurti v2)
@@ -43,6 +44,7 @@ function App() {
         </div>
       </main>
       <WebsiteAnalytics />
+      <CookieConsentBanner />
       <Toaster
         position="bottom-right"
         toastOptions={{

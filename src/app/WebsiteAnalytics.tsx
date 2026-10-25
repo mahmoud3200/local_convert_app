@@ -1,20 +1,20 @@
-import { lazy, Suspense } from "react";
+import { useEffect } from "react";
 import { isTauriRuntime } from "@/platform/tauri-runtime";
-
-const Analytics = lazy(() =>
-  import("@vercel/analytics/react").then((module) => ({
-    default: module.Analytics,
-  })),
-);
+import { readCookieConsent } from "./analytics/cookie-consent";
+import { loadGoogleAnalytics } from "./analytics/google-analytics";
 
 export function WebsiteAnalytics() {
-  if (isTauriRuntime()) {
-    return null;
-  }
+  const isDesktop = isTauriRuntime();
 
-  return (
-    <Suspense fallback={null}>
-      <Analytics />
-    </Suspense>
-  );
+  useEffect(() => {
+    if (isDesktop) {
+      return;
+    }
+
+    if (readCookieConsent() === "accepted") {
+      loadGoogleAnalytics();
+    }
+  }, [isDesktop]);
+
+  return null;
 }

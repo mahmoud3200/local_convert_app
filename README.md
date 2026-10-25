@@ -1,533 +1,65 @@
 # LoConvert
 
-LoConvert is a privacy-first local file converter built as a single codebase that runs in two environments:
+LoConvert is a privacy-first media converter that runs entirely on your device. It converts images, audio, and video locally without uploading files to a server.
 
-- Web: React + FFmpeg WASM for lighter, browser-safe work: [local-convert-app.vercel.app](https://local-convert-app.vercel.app/)
-- Desktop: Tauri v2 + native FFmpeg for heavier local conversion: [GitHub Releases](https://github.com/mahmoud3200/local_convert_app/releases/tag/v1.0-beta)
+- **Web app:** [local-convert-app.vercel.app](https://local-convert-app.vercel.app/)
+- **Desktop app:** [GitHub Releases](https://github.com/mahmoud3200/local_convert_app/releases/tag/v1.0-beta)
 
-The project is intentionally a one-page utility, not a marketing site and not a routed app.
-(If I ever need a marketing site, I would rather keep it separate and simple than fold routing into the converter UI.)
+## What it does
 
-Current public release target: `v1.0-beta`
+- Converts images, audio, and video
+- Handles multiple files in one queue
+- Stores reusable default settings per media type
+- Supports per-file conversion settings
+- Runs the same React UI on two different engines
+- Keeps files local on both web and desktop
 
-## Note from the developer
+## One UI, two runtimes
 
-This project was built as a learning experience in designing a cross-platform architecture for local media processing.
+| | Web | Desktop |
+| --- | --- | --- |
+| Engine | FFmpeg WASM | Native FFmpeg through Tauri v2 |
+| Best for | Quick, browser-safe jobs | Larger files and broader format support |
 
-I used AI tools to accelerate parts of the implementation, especially when working with Tauri and Rust, which I’m still learning. However, the architecture, system design, and product decisions were made intentionally to address real constraints such as browser limitations, performance, and codec support.
+The web build stays intentionally conservative because browser memory and codec support are limited. The desktop build is the stronger path for heavier conversions.
 
-The goal was to build a practical, privacy-first tool that clearly separates responsibilities between the UI, feature logic, and platform layer, while keeping the behavior predictable across both web and desktop environments.
+## Quick start
 
-## What the project does
-
-- Converts images, audio, and video locally
-- Supports multiple files in one queue
-- Stores default conversion settings per media type
-- Supports per-file configuration
-- Uses a shared UI with two different conversion engines
-- Persists default settings in `localStorage`
-- Persists the desktop queue across app restarts when files still exist
-- Uses desktop notifications when a conversion finishes in Tauri
-- Cancels active conversions when a file is removed, the queue is cleared, or the desktop app closes
-- Downloads desktop batch output as a ZIP archive
-
-## Desktop-specific behavior
-
-The desktop app does more than just swap conversion engines.
-
-- It prefers a bundled FFmpeg sidecar
-- If no sidecar is present, it can fall back to system `ffmpeg` on `PATH`
-- It keeps native file paths for desktop-selected files instead of pushing large files through JS memory
-- It persists restorable native-path queue items across app restarts
-- It shows desktop notifications when conversions finish
-- It prevents normal idle sleep while conversion is running
-- It stops running FFmpeg child processes when the app closes
-- It uses native save behavior for desktop downloads and zips `Download All` output
-
-## Why there are two engines
-
-This repo is built around one product with two runtime paths.
-
-### Web engine
-
-The browser build uses `ffmpeg.wasm`. This is useful because it keeps everything local and requires no backend, but it also has real limits:
-
-- browser memory limits
-- slower heavy transcoding
-- codec support depends on the bundled WASM core
-- large video transcodes can make the UI unstable
-
-Because of that, the web engine is intentionally conservative:
-
-- AVIF is not exposed on the web runtime
-- browser video output is limited to `original`
-- heavy browser video transcoding is intentionally avoided
-
-### Desktop engine
-
-The desktop build uses Tauri and calls native FFmpeg through Rust. This is the higher-power path:
-
-- broader codec and format support
-- better handling for larger files
-- native file paths instead of copying everything through JS memory
-- platform integrations such as notifications and desktop save dialogs
-- bundled-sidecar-first FFmpeg resolution with system `ffmpeg` fallback when available
-
-The React UI does not know which engine is active. It talks to a platform boundary, and the platform picks the correct engine at runtime.
-
-## Core technical decisions
-
-### 1. Shared UI, separate platform layer
-
-The app is split into three layers:
-
-- UI components render the interface and hold small UI-only state
-- feature hooks manage queue state, settings state, and conversion orchestration
-- platform code handles runtime-specific work such as FFmpeg execution, file system access, output saving, notifications, and sleep prevention
-
-This keeps React code from directly knowing about Tauri commands or FFmpeg internals.
-
-### 2. Capability-driven UI
-
-Each engine exposes an `EngineCapabilities` object:
-
-- runtime label
-- supported output formats per media type
-- allowed advanced settings per media type
-- runtime notes
-
-The UI derives its options from those capabilities instead of hardcoding one global set of behaviors. That is what allows:
-
-- web and desktop to show different valid output formats
-- invalid controls to stay hidden for the wrong file type
-- browser limitations to be surfaced honestly in the UI
-
-### 3. No raw FFmpeg flags in the UI
-
-The UI only exposes domain-level settings such as:
-
-- output format
-- quality
-- compression
-- resolution
-- bitrate
-- frame rate
-- sample rate
-- channels
-- metadata removal
-
-Raw FFmpeg arguments are intentionally not exposed. The goal is:
-
-- safer validation
-- fewer invalid combinations
-- easier future maintenance
-- a cleaner product for non-technical users
-
-### 4. Browser video is intentionally limited
-
-Browser video conversion is the most expensive and least reliable path in this product. Instead of pretending the browser can do everything equally well, the web runtime is intentionally limited to the safer path:
-
-- keep the original video format on web
-- avoid broad browser-side re-encoding options
-- direct heavier jobs toward the desktop app
-
-That decision is product-driven and technical:
-
-- less browser memory pressure
-- fewer codec-related failures
-- more predictable UX
-
-### 5. Image metadata probing is capped at 50 MB
-
-The app still needs a source URL for some image work, such as reading output dimensions. That URL is only created for images at or below `50 MB`.
-
-This limit exists to protect the UI runtime:
-
-- browser image URLs decode inside the page
-- Tauri image URLs still render inside a WebView
-- large images can freeze the interface or decode unpredictably
-
-Conversion can still work for larger files. The limit only applies to the temporary image URL used for metadata probing.
-
-### 6. Desktop prefers native file paths
-
-When a file is chosen in the desktop app through the native picker, the app keeps the native path and converts from disk. This avoids routing large files through JS memory and keeps desktop performance reasonable.
-
-There is still a fallback path for browser `File` objects, but that route is intentionally guarded for large files.
-
-### 7. Persistence is scoped and defensive
-
-The app persists:
-
-- default settings per media kind
-- desktop queue state for native-path files
-
-Desktop queue restore is defensive:
-
-- missing native paths are filtered out
-- invalid settings are sanitized on load
-- restored items never reuse stale WebView file URLs
-
-### 8. Cancellation matters
-
-Conversion jobs are designed to be cancellable:
-
-- removing a converting file cancels its job
-- clearing the queue cancels active jobs
-- closing the desktop app stops running FFmpeg processes
-
-That behavior exists because long-running local media work must not survive UI cleanup unexpectedly.
-
-### 9. Desktop lifecycle is defensive
-
-The desktop app handles a few OS-facing edge cases deliberately:
-
-- queue restore only brings back native-path files that still exist
-- restored items revalidate native paths before they reappear in the queue
-- `Download All` on desktop produces a ZIP instead of pretending browser-style multi-download UX makes sense in a native app
-- FFmpeg child processes are tracked so they can be cancelled explicitly
-
-### 10. Tailwind v4 uses semantic tokens
-
-The UI uses Tailwind v4 with semantic CSS variables in [`src/styles/globals.css`](src/styles/globals.css):
-
-- `@theme` is used for structural tokens such as radii, shadows, spacing, and fonts
-- `@theme inline` maps semantic color utilities to CSS variables
-- the app uses a single dark theme built on those tokens
-
-This keeps component classes tied to semantic meaning instead of hardcoded color values.
-
-### 11. Web analytics stay web-only
-
-The web version uses Vercel Analytics, as it is deployed on Vercel.  
-Implementation: [`src/app/WebsiteAnalytics.tsx`](src/app/WebsiteAnalytics.tsx)
-
-- Analytics are intentionally disabled in the desktop app to keep it fully local and avoid unexpected network activity.
-
-## Folder structure
-
-The most important parts of the repo are:
-
-```text
-src/
-  app/
-    App.tsx
-    WebsiteAnalytics.tsx
-  components/
-    ui/
-      button.tsx
-      select.tsx
-      switch.tsx
-      tooltip.tsx
-  features/
-    converter/
-      components/
-        dialogs/
-          FileSettingsDialog.tsx
-          GlobalSettingsDialog.tsx
-        file-list/
-          AddMoreFiles.tsx
-          BatchActions.tsx
-          FileKindIcon.tsx
-          FileList.tsx
-          FileRow.tsx
-          FileRowActions.tsx
-          FileStatusLabel.tsx
-        layout/
-          ConverterBackdrop.tsx
-          ConverterDialogs.tsx
-          ConverterHeader.tsx
-          ConverterScreen.tsx
-          FfmpegDesktopNotice.tsx
-          GlobalDropOverlay.tsx
-          HomeHero.tsx
-          UploadDropzone.tsx
-        settings/
-          overlay/
-            audio-sections.tsx
-            DimensionInputs.tsx
-            FormatSelect.tsx
-            OptionCardGroup.tsx
-            ResolutionField.tsx
-            SettingsOverlayFrame.tsx
-            SettingsSections.tsx
-            settings-labels.ts
-            settings-section.ts
-            settings-visibility.ts
-            SliderField.tsx
-            SummaryStrip.tsx
-            ToggleRow.tsx
-            visual-sections.tsx
-      constants/
-        index.ts
-      conversion/
-        conversion-messages.ts
-        conversion-request.ts
-      files/
-        desktop-queue-storage.ts
-        file-formatting.ts
-        format-support.ts
-        managed-files.ts
-      settings/
-        advanced-updates.ts
-        defaults.ts
-        output-dimensions.ts
-        settings-clamping.ts
-        settings-numbers.ts
-        settings-rules.ts
-        settings-storage.ts
-      hooks/
-        useConversionProcess.ts
-        useConversionSettings.ts
-        useConverterWorkspace.ts
-        useDesktopQueueHydration.ts
-        useDismissedFlag.ts
-        useFileManager.ts
-        useFileSettingsDraft.ts
-        useGlobalFileDrop.ts
-        useGlobalSettingsDialog.ts
-        usePlatformLinks.ts
-      types.ts
-  platform/
-    converter/
-      cancel-all-conversions.ts
-      create-engine.ts
-      engine.ts
-      mime-types.ts
-      tauri-engine.ts
-      wasm-args.ts
-      wasm-engine.ts
-      wasm-errors.ts
-    files/
-      tauri-file-picker.ts
-      types.ts
-    notifications/
-      conversion-notifications.ts
-    output/
-      download-output.ts
-      tauri-output.ts
-      types.ts
-      web-output.ts
-      zip-output.ts
-    power/
-      sleep-prevention.ts
-    preview/
-      media-dimensions.ts
-    converter-platform.ts
-    create-converter-platform.ts
-    check-browser-support.ts
-    tauri-runtime.ts
-  styles/
-    globals.css
-
-src-tauri/
-  src/
-    commands/
-      conversion.rs
-      files.rs
-      output.rs
-    ffmpeg/
-      args.rs
-      runner.rs
-    conversion_paths.rs
-    lib.rs
-    main.rs
-    power.rs
-    types.rs
-  binaries/
-    ...FFmpeg sidecars per target when bundled
-  tauri.conf.json
-
-scripts/
-  setup-ffmpeg-sidecar.mjs
-  setup-ffmpeg-sidecar.ps1
-
-docs/
-  desktop-releases.md
-  THIRD-PARTY-NOTICES.txt
-  ffmpeg-licensing.md
-```
-
-## Responsibility by area
-
-### `src/features/converter`
-
-This is the main feature boundary.
-
-- `components/` contains converter-specific UI
-- `hooks/` contains feature state and orchestration
-- `constants/` centralizes storage keys, setting ranges, and option lists
-- `files/` groups queue persistence, managed-file factories, formatting, and format-support helpers
-- `settings/` groups defaults, storage, sanitizing/clamping, output-dimension, and number helpers
-- `conversion/` groups conversion-request construction and conversion/download messages
-
-This folder should contain converter-specific behavior, not general-purpose app code.
-
-### `src/platform`
-
-This is the runtime boundary.
-
-It handles:
-
-- engine selection
-- browser vs desktop conversion
-- native file picking
-- output saving
-- ZIP export
-- notifications
-- image dimension probing
-- sleep prevention
-
-This layer should not know about React rendering.
-
-### `src/components/ui`
-
-This folder is reserved for truly reusable UI primitives such as buttons, selects, switches, and tooltips.
-
-Converter-specific UI does not belong here.
-
-### `src-tauri`
-
-This is the desktop backend.
-
-Key jobs handled in Rust:
-
-- native FFmpeg execution
-- sidecar/system FFmpeg resolution
-- conversion cancellation
-- native file metadata access
-- saving and zipping generated outputs
-- sleep inhibition while conversion is active
-- app-close cleanup for running FFmpeg jobs
-
-Rust modules are now split by responsibility
-
-- `commands/` exposes Tauri command handlers
-- `ffmpeg/` contains FFmpeg argument building and process execution
-- `conversion_paths.rs` contains output-path helpers
-- `power.rs` contains sleep-prevention state
-- `types.rs` contains shared desktop request/response types
-
-## Important files to understand first
-
-If you are new to the codebase, start here:
-
-1. [`src/app/App.tsx`](src/app/App.tsx)
-2. [`src/features/converter/components/layout/ConverterScreen.tsx`](src/features/converter/components/layout/ConverterScreen.tsx)
-3. [`src/features/converter/hooks/useConverterWorkspace.ts`](src/features/converter/hooks/useConverterWorkspace.ts)
-4. [`src/features/converter/hooks/useFileManager.ts`](src/features/converter/hooks/useFileManager.ts)
-5. [`src/features/converter/hooks/useConversionSettings.ts`](src/features/converter/hooks/useConversionSettings.ts)
-6. [`src/features/converter/hooks/useConversionProcess.ts`](src/features/converter/hooks/useConversionProcess.ts)
-7. [`src/platform/create-converter-platform.ts`](src/platform/create-converter-platform.ts)
-8. [`src/platform/converter/create-engine.ts`](src/platform/converter/create-engine.ts)
-9. [`src/platform/converter/wasm-engine.ts`](src/platform/converter/wasm-engine.ts)
-10. [`src/platform/converter/tauri-engine.ts`](src/platform/converter/tauri-engine.ts)
-11. [`src-tauri/src/lib.rs`](src-tauri/src/lib.rs)
-12. [`src-tauri/src/commands/conversion.rs`](src-tauri/src/commands/conversion.rs)
-13. [`src-tauri/src/ffmpeg/runner.rs`](src-tauri/src/ffmpeg/runner.rs)
-14. [`src-tauri/src/ffmpeg/args.rs`](src-tauri/src/ffmpeg/args.rs)
-
-## How the app flows
-
-At a high level:
-
-1. `App.tsx` creates the converter platform.
-2. `createConverterPlatform()` wires engine + file access + output saving + notifications.
-3. `createConverterEngine()` picks `WasmEngine` in the browser or `TauriEngine` inside Tauri.
-4. `ConverterScreen` renders the one-page tool UI.
-5. `useConverterWorkspace()` coordinates the feature hooks without becoming a god hook.
-6. `useFileManager`, `useConversionSettings`, and `useConversionProcess` each own one real behavior boundary.
-7. The active engine receives a clean conversion request and returns a structured result.
-
-## Running locally
-
-### Requirements
-
-- Node.js
-- npm
-- Rust toolchain
-- Tauri prerequisites for your OS
-
-For desktop builds, FFmpeg sidecars matter.
-
-The Tauri config runs `npm run ffmpeg:setup` before dev/build. That script:
-
-- checks `src-tauri/binaries`
-- if no sidecar exists, tries to find a system `ffmpeg`
-- copies it into the Tauri sidecar slot for the active target
-
-At runtime, the desktop backend also follows the same intention:
-
-- try bundled sidecar first
-- otherwise try system `ffmpeg`
-- otherwise return a clear missing-engine error
-
-For actual release builds, the intended setup is to bundle the correct FFmpeg binary for each target platform instead of relying on a developer machine install.
-
-### Web development
+Requirements: Node.js, npm, a Rust toolchain, and the Tauri prerequisites for your OS.
 
 ```bash
 npm install
+
+# Web development
 npm run dev
-```
 
-### Desktop development
-
-```bash
-npm install
+# Desktop development
 npm run tauri -- dev
-```
 
-### Production builds
-
-```bash
+# Production builds
 npm run build
 npm run tauri -- build
 ```
 
-## Browser support
+Desktop builds need an FFmpeg sidecar. The setup script checks `src-tauri/binaries` first, then falls back to a system `ffmpeg` during local development. See [Desktop application](docs/03-desktop-application.md) and [Desktop releases](docs/desktop-releases.md).
 
-The browser runtime requires:
+## Documentation
 
-- `WebAssembly`
-- `Worker`
-- `File`
-- `Blob`
-- `URL.createObjectURL`
+- [How LoConvert works](docs/01-how-loconvert-works.md) — architecture, layers, conversion flow, and design decisions
+- [Web application](docs/02-web-application.md) — browser runtime, limits, deployment, and troubleshooting
+- [Desktop application](docs/03-desktop-application.md) — Tauri backend, native FFmpeg, file handling, and releases
+- [Analytics](docs/04-analytics.md) — Google Analytics setup, cookie consent, and desktop exclusions
+- [Contributing](CONTRIBUTING.md) — setup, architecture rules, and review checklist
+- [Desktop releases](docs/desktop-releases.md) — build targets, artifacts, and release steps
+- [FFmpeg licensing](docs/ffmpeg-licensing.md) — distribution notes for bundled FFmpeg
+- [Third-party notices](docs/THIRD-PARTY-NOTICES.txt)
 
-That check lives in [`src/platform/check-browser-support.ts`](src/platform/check-browser-support.ts).
+## Privacy
 
-Even when the browser passes the runtime check, codec/container support and performance still depend on the browser and the bundled FFmpeg WASM core.
+Files stay on your device in both runtimes.
 
-## Known limitations
+## License
 
-- Browser video is intentionally limited compared to desktop
-- AVIF is not exposed in the web runtime
-- Image metadata probing is skipped above `50 MB`
-- Desktop still depends on FFmpeg being bundled correctly or being available on the system
-- Very large desktop video conversions can still take a long time depending on codec, resolution, bitrate, and hardware
-- Linux and macOS release builds exist, but broader runtime validation depends on real-device testing
+Original LoConvert source code is licensed under the [Apache License 2.0](LICENSE).
 
-## FFmpeg, notices, and legal docs
-
-This project uses FFmpeg.
-
-Relevant docs in this repo:
-
-- [`docs/THIRD-PARTY-NOTICES.txt`](docs/THIRD-PARTY-NOTICES.txt)
-- [`docs/ffmpeg-licensing.md`](docs/ffmpeg-licensing.md)
-
-If you distribute builds publicly, ship the notice and licensing files alongside the release assets.
-
-## Contributing
-
-This codebase prefers boring architecture over clever architecture.
-
-When making changes:
-
-- keep UI code in components
-- keep orchestration/state in feature hooks
-- keep platform-specific work in `src/platform` or `src-tauri`
-- do not reintroduce a god hook or a god component
-- do not expose raw FFmpeg flags in the UI
-- keep the browser runtime honest about its limits
+Third-party components keep their own licenses. Desktop builds may bundle a GPL-enabled FFmpeg binary, so read [FFmpeg licensing](docs/ffmpeg-licensing.md) and [Third-party notices](docs/THIRD-PARTY-NOTICES.txt) before distributing installers.

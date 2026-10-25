@@ -2,6 +2,7 @@
   "name": "local_convert_app",
   "private": true,
   "version": "1.0.0-beta",
+  "license": "Apache-2.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -24,7 +25,6 @@
     "@tauri-apps/plugin-dialog": "^2.7.0",
     "@tauri-apps/plugin-fs": "^2.5.0",
     "@tauri-apps/plugin-notification": "^2.3.3",
-    "@vercel/analytics": "^2.0.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.8.0",
     "react": "^19.2.4",

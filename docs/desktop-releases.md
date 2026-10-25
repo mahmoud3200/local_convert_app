@@ -199,6 +199,7 @@ This only changes the uploaded filename, not the internal installer metadata.
 
 Because desktop builds use FFmpeg, ship the notice and licensing files with the release:
 
+- [`LICENSE`](../LICENSE)
 - [`THIRD-PARTY-NOTICES.txt`](./THIRD-PARTY-NOTICES.txt)
 - [`ffmpeg-licensing.md`](./ffmpeg-licensing.md)
 
@@ -238,7 +239,7 @@ Before publishing a desktop release:
    - queue restore
    - remove while converting
 6. Upload only the packaged installer files.
-7. Upload `THIRD-PARTY-NOTICES.txt` and `ffmpeg-licensing.md`.
+7. Upload `LICENSE`, `THIRD-PARTY-NOTICES.txt`, and `ffmpeg-licensing.md`.
 8. Add release notes describing platform coverage and known limitations.
 
 ## Suggested release note wording
