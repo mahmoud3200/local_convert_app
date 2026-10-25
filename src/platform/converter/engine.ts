@@ -1,7 +1,7 @@
 export type MediaKind = "image" | "audio" | "video";
-export type EngineRuntime = "web-wasm" | "tauri-native";
+type EngineRuntime = "web-wasm" | "tauri-native";
 
-export type AdvancedSettingCapabilities = {
+type AdvancedSettingCapabilities = {
   quality: boolean;
   compression: boolean;
   resolution: boolean;

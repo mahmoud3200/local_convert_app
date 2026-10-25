@@ -20,7 +20,7 @@ type TauriPathConvertResponse = {
   mimeType: string;
 };
 
-export const TAURI_ENGINE_CAPABILITIES: EngineCapabilities = {
+const TAURI_ENGINE_CAPABILITIES: EngineCapabilities = {
   runtime: "tauri-native",
   label: "Desktop native FFmpeg",
   outputs: {
@@ -40,7 +40,7 @@ export const TAURI_ENGINE_CAPABILITIES: EngineCapabilities = {
       metadata: true,
     },
     audio: {
-      quality: true,
+      quality: false,
       compression: false,
       resolution: false,
       bitrate: true,

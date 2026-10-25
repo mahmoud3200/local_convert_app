@@ -1,92 +1,105 @@
 @import "tailwindcss";
 
-:root {
-  --background: #eef3fb;
-  --background-elevated: rgba(255, 255, 255, 0.92);
-  --background-subtle: #dbe5f2;
-  --control-background: #ffffff;
-  --foreground: #0f172a;
-  --foreground-muted: #334155;
-  --border: rgba(71, 85, 105, 0.28);
-  --accent: #1d4ed8;
-  --accent-soft: rgba(29, 78, 216, 0.16);
-  --accent-foreground: #eff6ff;
-  --success: #166534;
-  --success-soft: rgba(22, 101, 52, 0.16);
-  --success-border: rgba(22, 101, 52, 0.34);
-  --error: #b91c1c;
-  --error-soft: rgba(185, 28, 28, 0.14);
-  --error-border: rgba(185, 28, 28, 0.34);
-  --error-foreground: #ffffff;
-  --scrollbar-track: rgba(148, 163, 184, 0.16);
-  --scrollbar-thumb: rgba(51, 65, 85, 0.42);
-  --scrollbar-thumb-hover: rgba(29, 78, 216, 0.58);
-  color: var(--foreground);
-  background: var(--background);
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("/fonts/inter-latin-var.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6,
+    U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122,
+    U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
-:root[data-theme="dark"] {
-  --background: #08111f;
-  --background-elevated: rgba(15, 23, 42, 0.9);
-  --background-subtle: #132034;
-  --control-background: #18263d;
-  --foreground: #f8fafc;
-  --foreground-muted: #d6e0ee;
-  --border: rgba(148, 163, 184, 0.38);
-  --accent: #7ab6ff;
-  --accent-soft: rgba(122, 182, 255, 0.18);
-  --accent-foreground: #08111f;
+@font-face {
+  font-family: "Space Grotesk";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/space-grotesk-latin-700.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6,
+    U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122,
+    U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  color-scheme: dark;
+
+  --background: #09121f;
+  --background-end: #1d2838;
+  --background-elevated: #0f1a29;
+  --background-panel: rgba(30, 30, 30, 0.25);
+  --background-row: rgba(30, 30, 30, 0.5);
+  --background-subtle: rgba(255, 255, 255, 0.04);
+  --control-background: rgba(255, 255, 255, 0.08);
+
+  --foreground: #ffffff;
+  --foreground-muted: rgba(255, 255, 255, 0.6);
+  --foreground-muted-strong: rgba(255, 255, 255, 0.78);
+
+  --border: rgba(255, 255, 255, 0.19);
+  --border-subtle: rgba(255, 255, 255, 0.13);
+  --border-strong: rgba(255, 255, 255, 0.29);
+
+  --accent: #7cd3f9;
+  --accent-hover: #96dfff;
+  --accent-soft: rgba(124, 211, 249, 0.1);
+  --accent-foreground: #0d1b2a;
+
   --success: #86efac;
-  --success-soft: rgba(34, 197, 94, 0.16);
-  --success-border: rgba(134, 239, 172, 0.34);
-  --error: #fca5a5;
-  --error-soft: rgba(248, 113, 113, 0.16);
-  --error-border: rgba(252, 165, 165, 0.32);
-  --error-foreground: #2b0a0a;
-  --scrollbar-track: rgba(148, 163, 184, 0.18);
-  --scrollbar-thumb: rgba(214, 224, 238, 0.34);
-  --scrollbar-thumb-hover: rgba(122, 182, 255, 0.58);
+
+  --error: #ff6b6b;
+  --error-soft: rgba(255, 107, 107, 0.1);
+  --error-border: rgba(255, 107, 107, 0.31);
+
+  --scrollbar-track: rgba(255, 255, 255, 0.04);
+  --scrollbar-thumb: rgba(255, 255, 255, 0.16);
+  --scrollbar-thumb-hover: rgba(124, 211, 249, 0.45);
+
   color: var(--foreground);
   background: var(--background);
 }
 
 @theme {
   --font-sans:
-    "Segoe UI", Inter, ui-sans-serif, system-ui, -apple-system,
-    BlinkMacSystemFont, sans-serif;
+    "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+  --font-display: "Space Grotesk", "Inter", ui-sans-serif, system-ui, sans-serif;
+
   --radius-panel: 2rem;
-  --radius-control: 1rem;
-  --spacing-4_5: 1.125rem;
-  --spacing-18: 4.5rem;
-  --shadow-s:
-    inset 0 1px 2px #ffffff20, 0 1px 2px #00000020, 0 2px 4px #00000005,
-    inset 0 -2px 1px 0 #93939315;
-  --shadow-m:
-    inset 0 1px 2px #ffffff30, 0 2px 4px #00000020, 0 4px 8px #00000015,
-    inset 0 -2px 1px 0 #93939325;
-  --shadow-l:
-    inset 0 1px 2px #ffffff70, 0 4px 6px #00000040, 0 6px 10px #00000025,
-    inset 0 -2px 1px 0 #93939335;
+  --radius-control: 0.625rem;
+
+  --shadow-s: 0 2px 8px rgba(0, 0, 0, 0.38);
+  --shadow-m: 0 18px 45px -24px rgba(0, 0, 0, 0.7);
+  --shadow-l: 0 32px 80px -32px rgba(0, 0, 0, 0.8);
 }
 
 @theme inline {
   --color-app-bg: var(--background);
-  --color-app-panel: var(--background-elevated);
+  --color-app-panel: var(--background-panel);
+  --color-app-elevated: var(--background-elevated);
+  --color-app-row: var(--background-row);
   --color-app-subtle: var(--background-subtle);
   --color-app-control: var(--control-background);
+
   --color-app-fg: var(--foreground);
   --color-app-muted: var(--foreground-muted);
+  --color-app-muted-strong: var(--foreground-muted-strong);
+
   --color-app-border: var(--border);
+  --color-app-border-subtle: var(--border-subtle);
+  --color-app-border-strong: var(--border-strong);
+
   --color-app-accent: var(--accent);
+  --color-app-accent-hover: var(--accent-hover);
   --color-app-accent-soft: var(--accent-soft);
   --color-app-accent-fg: var(--accent-foreground);
+
   --color-app-success: var(--success);
-  --color-app-success-soft: var(--success-soft);
-  --color-app-success-border: var(--success-border);
+
   --color-app-error: var(--error);
   --color-app-error-soft: var(--error-soft);
   --color-app-error-border: var(--error-border);
-  --color-app-error-fg: var(--error-foreground);
 }
 
 @layer base {
@@ -118,15 +131,12 @@
   *::-webkit-scrollbar-thumb:hover {
     background: var(--scrollbar-thumb-hover);
     border: 0.1875rem solid transparent;
+    border-radius: 999px;
     background-clip: padding-box;
   }
 
   *::-webkit-scrollbar-corner {
     background: transparent;
-  }
-
-  .scrollbar-gutter-stable {
-    scrollbar-gutter: stable;
   }
 
   body {
@@ -135,6 +145,13 @@
     background: var(--background);
     color: var(--foreground);
     font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: rgba(124, 211, 249, 0.32);
+    color: #ffffff;
   }
 
   button,
@@ -150,7 +167,15 @@
 
 @layer components {
   .surface-panel {
-    @apply rounded-panel border border-app-border bg-app-panel shadow-s backdrop-blur-xl;
+    @apply rounded-panel border border-app-border bg-app-panel backdrop-blur-xl;
+  }
+
+  .bg-app-main {
+    background-image: linear-gradient(
+      to top,
+      var(--background-end) 0%,
+      var(--background) 100%
+    );
   }
 
   .file-row-converting::after {
@@ -172,22 +197,58 @@
     box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 50%, transparent);
     animation: file-row-progress-sweep 0.9s linear infinite;
   }
-}
 
-.bg-app-main {
-  background-image:
-    linear-gradient(
-      to right,
-      color-mix(in srgb, var(--foreground) 8%, transparent) 1px,
-      transparent 1px
-    ),
-    linear-gradient(
-      to bottom,
-      color-mix(in srgb, var(--foreground) 8%, transparent) 1px,
-      transparent 1px
-    );
+  .drop-overlay {
+    animation: drop-overlay-in 140ms ease-out;
+  }
 
-  background-size: 28px 28px;
+  .settings-slider {
+    width: 100%;
+    height: 1.125rem;
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
+    outline: none;
+  }
+
+  .settings-slider::-webkit-slider-runnable-track {
+    height: 1.125rem;
+    background: transparent;
+  }
+
+  .settings-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 1.125rem;
+    height: 1.125rem;
+    border: 3px solid var(--accent);
+    border-radius: 999px;
+    background: #ffffff;
+    box-shadow: 0 0 0 4px rgba(124, 211, 249, 0.12);
+    cursor: pointer;
+    transition:
+      box-shadow 150ms ease,
+      transform 150ms ease;
+  }
+
+  .settings-slider:focus-visible::-webkit-slider-thumb {
+    box-shadow: 0 0 0 6px rgba(124, 211, 249, 0.2);
+  }
+
+  .settings-slider::-moz-range-thumb {
+    width: 1.125rem;
+    height: 1.125rem;
+    border: 3px solid var(--accent);
+    border-radius: 999px;
+    background: #ffffff;
+    box-shadow: 0 0 0 4px rgba(124, 211, 249, 0.12);
+    cursor: pointer;
+  }
+
+  .settings-slider::-moz-range-track {
+    height: 0.375rem;
+    border-radius: 999px;
+    background: transparent;
+  }
 }
 
 @keyframes file-row-progress-sweep {
@@ -197,5 +258,15 @@
 
   100% {
     background-position: 3rem 0;
+  }
+}
+
+@keyframes drop-overlay-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
   }
 }

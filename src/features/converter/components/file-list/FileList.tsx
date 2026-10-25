@@ -1,54 +1,62 @@
 import type {
   FileConversionSettings,
   ManagedConversionFile,
+  OutputFormat,
 } from "@/features/converter/types";
 import type { DownloadableOutput } from "@/platform/output/types";
 import type { EngineCapabilities } from "@/platform/converter/engine";
-import { canPreviewFile } from "@/features/converter/preview-rules";
+import { AddMoreFiles } from "./AddMoreFiles";
 import { BatchActions } from "./BatchActions";
 import { FileRow } from "./FileRow";
 
 interface FileListProps {
-  files: ManagedConversionFile[];
+  accept: string;
   capabilities: EngineCapabilities;
   canConvertAll: boolean;
   canDownloadAll: boolean;
   downloadsByFileId: Record<string, DownloadableOutput>;
+  files: ManagedConversionFile[];
+  isNativeBrowseEnabled: boolean;
   settingsByFileId: Record<string, FileConversionSettings>;
+  onClearAll: () => void;
   onConvert: (fileId: string) => void;
   onConvertAll: () => void;
   onDownload: (fileId: string) => void | Promise<void>;
   onDownloadAll: () => void | Promise<void>;
-  onClearAll: () => void;
-  onOpenPreview: (fileId: string) => void;
+  onFilesSelect: (files: FileList | File[]) => void;
+  onFormatChange: (fileId: string, format: OutputFormat) => void;
+  onNativeBrowse?: () => void | Promise<void>;
   onOpenSettings: (fileId: string) => void;
   onRemove: (fileId: string) => void;
 }
 
 export function FileList({
-  files,
+  accept,
   capabilities,
   canConvertAll,
   canDownloadAll,
   downloadsByFileId,
+  files,
+  isNativeBrowseEnabled,
   settingsByFileId,
+  onClearAll,
   onConvert,
   onConvertAll,
   onDownload,
   onDownloadAll,
-  onClearAll,
-  onOpenPreview,
+  onFilesSelect,
+  onFormatChange,
+  onNativeBrowse,
   onOpenSettings,
   onRemove,
 }: FileListProps) {
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col gap-4">
       {files.map((file) => (
         <FileRow
           key={file.id}
           canConvert={file.status !== "done" && file.status !== "converting"}
           file={file}
-          canPreview={canPreviewFile(file)}
           canDownload={
             Boolean(downloadsByFileId[file.id]) && file.status === "done"
           }
@@ -56,11 +64,18 @@ export function FileList({
           settings={settingsByFileId[file.id]}
           onConvert={() => onConvert(file.id)}
           onDownload={() => onDownload(file.id)}
-          onOpenPreview={() => onOpenPreview(file.id)}
+          onFormatChange={(format) => onFormatChange(file.id, format)}
           onOpenSettings={() => onOpenSettings(file.id)}
           onRemove={() => onRemove(file.id)}
         />
       ))}
+
+      <AddMoreFiles
+        accept={accept}
+        isNativeBrowseEnabled={isNativeBrowseEnabled}
+        onFilesSelect={onFilesSelect}
+        onNativeBrowse={onNativeBrowse}
+      />
 
       <BatchActions
         canConvertAll={canConvertAll}

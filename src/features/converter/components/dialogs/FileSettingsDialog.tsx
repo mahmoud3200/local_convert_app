@@ -1,16 +1,12 @@
+import { ArrowDownToLine, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Select } from "@/components/ui/select";
-import { getFormatOptionsForKind } from "@/features/converter/format-support";
-import { getPresetOptionsForKind } from "@/features/converter/presets";
-import { hasPresetControlsForKind } from "@/features/converter/settings-rules";
+import { getFormatOptionsForKind } from "@/features/converter/files/format-support";
 import { useFileSettingsDraft } from "@/features/converter/hooks/useFileSettingsDraft";
-import { ConverterDialogShell } from "./ConverterDialogShell";
-import { AdvancedSettingsForm } from "../settings/AdvancedSettingsForm";
-import { PresetOptionCards } from "../settings/PresetOptionCards";
+import { SettingsOverlayFrame } from "../settings/overlay/SettingsOverlayFrame";
+import { SettingsSections } from "../settings/overlay/SettingsSections";
 import type {
   FileConversionSettings,
   ManagedConversionFile,
-  OutputFormat,
 } from "@/features/converter/types";
 import type { EngineCapabilities } from "@/platform/converter/engine";
 
@@ -32,11 +28,14 @@ export function FileSettingsDialog({
   onSaved,
 }: FileSettingsDialogProps) {
   const formatOptions = getFormatOptionsForKind(file.kind, capabilities);
-  const presetOptions = getPresetOptionsForKind(file.kind);
-  const canUsePresets = hasPresetControlsForKind(file.kind, capabilities);
-  const showsBrowserVideoLimit =
-    capabilities.runtime === "web-wasm" && file.kind === "video";
   const draft = useFileSettingsDraft({ file, settings });
+  const sourceLabel = file.extension
+    ? file.extension.toUpperCase()
+    : file.kind.toUpperCase();
+  const targetLabel =
+    draft.draftSettings.format === "original"
+      ? sourceLabel
+      : draft.draftSettings.format.toUpperCase();
 
   function handleSave() {
     if (!draft.hasChanges) {
@@ -49,100 +48,42 @@ export function FileSettingsDialog({
   }
 
   return (
-    <ConverterDialogShell
-      description="Settings update only this file and never leak into the rest of the queue."
+    <SettingsOverlayFrame
       footer={
         <>
-          <Button variant="secondary" onClick={onClose}>
-            Close
+          <Button
+            className="h-[42px] rounded-[10px] border-white/13 bg-white/[0.06] px-6 text-[14px] font-semibold text-white/70 hover:bg-white/10 hover:text-white"
+            variant="secondary"
+            onClick={onClose}
+          >
+            Cancel
           </Button>
-          <Button disabled={!draft.hasChanges} onClick={handleSave}>
-            Save
+          <Button
+            className="h-[42px] gap-2 rounded-[10px] px-6 text-[14px] font-bold"
+            disabled={!draft.hasChanges}
+            onClick={handleSave}
+          >
+            <Check aria-hidden="true" className="h-[15px] w-[15px]" />
+            Apply
           </Button>
         </>
       }
-      isOpen
-      sizeClassName="h-[min(48rem,calc(100vh-2rem))] w-[min(64rem,calc(100vw-2rem))]"
-      title={file.name}
+      icon={<ArrowDownToLine aria-hidden="true" className="h-[18px] w-[18px]" />}
+      subtitle={`${file.name} · ${sourceLabel} → ${targetLabel}`}
+      title="Export Settings"
       onClose={onClose}
     >
-      <div className="h-full overflow-hidden px-6 py-5">
-        <div className="h-full overflow-hidden rounded-panel border border-app-border bg-app-subtle p-1">
-          <div className="h-full overflow-auto rounded-[calc(var(--radius-panel)-0.25rem)] px-4 py-4 pr-3 scrollbar-gutter-stable">
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-sm font-semibold text-app-fg">
-                  {file.kind} settings
-                </h3>
-                <p className="mt-1 text-sm text-app-muted">
-                  Settings update only this file and do not affect the rest of
-                  the queue.
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <h4 className="text-sm font-semibold text-app-fg">
-                  Output format
-                </h4>
-                {showsBrowserVideoLimit ? (
-                  <p className="rounded-panel border border-app-border bg-app-control px-4 py-3 text-sm text-app-muted">
-                    Browser video exports keep the original format to avoid slow
-                    format conversion. Use the desktop app when you need full
-                    video format changes or heavier edits.
-                  </p>
-                ) : null}
-                <Select
-                  value={draft.draftSettings.format}
-                  options={formatOptions}
-                  onValueChange={(value) =>
-                    draft.changeFormat(value as OutputFormat)
-                  }
-                />
-              </div>
-
-              <div className="space-y-3">
-                <div>
-                  <h4 className="text-sm font-semibold text-app-fg">Presets</h4>
-                  <p className="mt-1 text-sm text-app-muted">
-                    Presets are shortcuts. Editing advanced values turns this file
-                    into a custom setup.
-                  </p>
-                </div>
-                {canUsePresets ? (
-                  <PresetOptionCards
-                    customMessage="This file is currently using a custom configuration."
-                    options={presetOptions}
-                    selectedPreset={draft.draftSettings.preset}
-                    onSelect={draft.changePreset}
-                  />
-                ) : (
-                  <p className="rounded-panel border border-app-border bg-app-control px-4 py-3 text-sm text-app-muted">
-                    Presets are not available for browser because the advanced
-                    controls they would change are disabled.
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <h4 className="text-sm font-semibold text-app-fg">
-                    Advanced settings
-                  </h4>
-                  <p className="mt-1 text-sm text-app-muted">
-                    Only controls valid for {file.kind} conversion are shown.
-                  </p>
-                </div>
-                <AdvancedSettingsForm
-                  kind={file.kind}
-                  capabilities={capabilities}
-                  settings={draft.draftSettings.advanced}
-                  onChange={draft.changeAdvanced}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </ConverterDialogShell>
+      <SettingsSections
+        capabilities={capabilities}
+        formatOptions={formatOptions}
+        kind={file.kind}
+        naturalHeight={file.naturalHeight}
+        naturalWidth={file.naturalWidth}
+        settings={draft.draftSettings}
+        sourceExtension={file.extension}
+        onAdvancedChange={draft.changeAdvanced}
+        onFormatChange={draft.changeFormat}
+      />
+    </SettingsOverlayFrame>
   );
 }

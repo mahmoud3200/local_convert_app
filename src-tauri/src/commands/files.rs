@@ -40,22 +40,3 @@ pub fn check_native_paths(paths: Vec<String>) -> Result<Vec<NativePathExistence>
         })
         .collect())
 }
-
-#[tauri::command]
-pub fn read_native_preview(path: String, max_bytes: usize) -> Result<Vec<u8>, String> {
-    let file_path = PathBuf::from(&path);
-    let metadata = fs::metadata(&file_path)
-        .map_err(|error| format!("Could not inspect preview file: {error}"))?;
-
-    if !metadata.is_file() {
-        return Err(format!("Preview path is not a file: {path}"));
-    }
-
-    if metadata.len() > max_bytes as u64 {
-        return Err(format!(
-            "Preview file exceeds the allowed limit of {max_bytes} bytes."
-        ));
-    }
-
-    fs::read(&file_path).map_err(|error| format!("Could not read preview file: {error}"))
-}

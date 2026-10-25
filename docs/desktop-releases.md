@@ -1,6 +1,6 @@
 # Desktop releases
 
-This document explains how desktop releases work for Local Convert.
+This document explains how desktop releases work for LoConvert.
 
 The desktop app is built with Tauri v2 and uses native FFmpeg through the Rust backend. The web app and desktop app share the same React UI, but desktop releases package:
 
@@ -35,8 +35,8 @@ Expected outputs:
 
 Typical examples:
 
-- `Local Convert_1.0.0_x64-setup.exe`
-- `Local Convert_1.0.0_x64_en-US.msi`
+- `LoConvert_1.0.0_x64-setup.exe`
+- `LoConvert_1.0.0_x64_en-US.msi`
 
 ### Linux
 
@@ -48,9 +48,9 @@ Expected outputs:
 
 Typical examples:
 
-- `Local Convert_1.0.0_amd64.AppImage`
-- `Local Convert_1.0.0_amd64.deb`
-- `Local Convert-1.0.0-1.x86_64.rpm`
+- `LoConvert_1.0.0_amd64.AppImage`
+- `LoConvert_1.0.0_amd64.deb`
+- `LoConvert-1.0.0-1.x86_64.rpm`
 
 ### macOS
 
@@ -60,8 +60,8 @@ Expected outputs:
 
 Typical examples:
 
-- `Local Convert_1.0.0_aarch64.dmg`
-- `Local Convert_1.0.0_x64.dmg`
+- `LoConvert_1.0.0_aarch64.dmg`
+- `LoConvert_1.0.0_x64.dmg`
 
 ## Versioning
 
@@ -245,7 +245,7 @@ Before publishing a desktop release:
 
 Short version:
 
-> The desktop build is the recommended version of Local Convert for heavier jobs. It uses native FFmpeg through Tauri for more reliable audio/video conversion and better handling of larger files than the browser version.
+> The desktop build is the recommended version of LoConvert for heavier jobs. It uses native FFmpeg through Tauri for more reliable audio/video conversion and better handling of larger files than the browser version.
 
 ## Future improvements
 

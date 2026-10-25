@@ -1,11 +1,10 @@
 import { useMemo, useState } from "react";
-import { createPresetAdvancedSettings } from "@/features/converter/presets";
+import { changeAdvancedSetting } from "@/features/converter/settings/advanced-updates";
 import type {
   AdvancedSettings,
   FileConversionSettings,
   ManagedConversionFile,
   OutputFormat,
-  QualityPreset,
 } from "@/features/converter/types";
 
 interface UseFileSettingsDraftOptions {
@@ -19,7 +18,6 @@ export function useFileSettingsDraft({
 }: UseFileSettingsDraftOptions) {
   const [draftSettings, setDraftSettings] = useState<FileConversionSettings>({
     format: settings.format,
-    preset: settings.preset,
     advanced: { ...settings.advanced },
   });
 
@@ -35,55 +33,22 @@ export function useFileSettingsDraft({
     }));
   }
 
-  function changePreset(value: QualityPreset) {
-    setDraftSettings((current) => ({
-      ...current,
-      preset: value,
-      advanced: createPresetAdvancedSettings(
-        file.kind,
-        value,
-        current.advanced,
-      ),
-    }));
-  }
-
   function changeAdvanced<Key extends keyof AdvancedSettings>(
     key: Key,
     value: AdvancedSettings[Key],
   ) {
-    setDraftSettings((current) => {
-      const nextAdvanced: AdvancedSettings = {
-        ...current.advanced,
-        [key]: value,
-      };
-
-      if (key === "resolution" && value !== "custom") {
-        nextAdvanced.customWidth = "";
-        nextAdvanced.customHeight = "";
-      }
-
-      if (key === "resolution" && value === "custom") {
-        if (nextAdvanced.customWidth === "") {
-          nextAdvanced.customWidth = file.naturalWidth ?? "";
-        }
-
-        if (nextAdvanced.customHeight === "") {
-          nextAdvanced.customHeight = file.naturalHeight ?? "";
-        }
-      }
-
-      return {
-        ...current,
-        preset: null,
-        advanced: nextAdvanced,
-      };
-    });
+    setDraftSettings((current) => ({
+      ...current,
+      advanced: changeAdvancedSetting(current.advanced, key, value, {
+        width: file.naturalWidth,
+        height: file.naturalHeight,
+      }),
+    }));
   }
 
   return {
     changeAdvanced,
     changeFormat,
-    changePreset,
     draftSettings,
     hasChanges,
   };

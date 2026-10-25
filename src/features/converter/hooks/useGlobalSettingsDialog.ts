@@ -1,41 +1,33 @@
 import { useMemo, useState } from "react";
 import { MEDIA_KINDS } from "@/features/converter/constants";
-import { createPresetAdvancedSettings } from "@/features/converter/presets";
-import {
-  hasPresetControlsForKind,
-  sanitizeSettingsForKind,
-} from "@/features/converter/settings-rules";
-import { cloneSettingsRecord } from "@/features/converter/settings-storage";
+import { changeAdvancedSetting } from "@/features/converter/settings/advanced-updates";
+import { sanitizeSettingsForKind } from "@/features/converter/settings/settings-rules";
+import { cloneSettingsRecord } from "@/features/converter/settings/settings-storage";
 import type {
   AdvancedSettings,
   FileConversionSettings,
   MediaKind,
   OutputFormat,
-  ThemePreference,
 } from "@/features/converter/types";
 import type { EngineCapabilities } from "@/platform/converter/engine";
 
-export type SettingsTab = MediaKind | "appearance";
+type SettingsTab = MediaKind;
 
 interface UseGlobalSettingsDialogOptions {
   defaultSettingsByKind: Record<MediaKind, FileConversionSettings>;
   capabilities: EngineCapabilities;
   onSaveDefaultSettings: (kind: MediaKind, settings: FileConversionSettings) => void;
-  onThemePreferenceChange: (preference: ThemePreference) => void;
 }
 
 export function useGlobalSettingsDialog({
   defaultSettingsByKind,
   capabilities,
   onSaveDefaultSettings,
-  onThemePreferenceChange,
 }: UseGlobalSettingsDialogOptions) {
   const [activeTab, setActiveTab] = useState<SettingsTab>("image");
   const [draftSettingsByKind, setDraftSettingsByKind] = useState(() =>
     cloneSettingsRecord(defaultSettingsByKind),
   );
-
-  const activeMediaKind = activeTab === "appearance" ? null : activeTab;
 
   const changedKinds = useMemo(
     () =>
@@ -64,43 +56,15 @@ export function useGlobalSettingsDialog({
     }));
   }
 
-  function updatePreset(
-    kind: MediaKind,
-    value: NonNullable<FileConversionSettings["preset"]>,
-  ) {
-    if (!hasPresetControlsForKind(kind, capabilities)) {
-      return;
-    }
-
-    updateDraftSettings(kind, (current) => ({
-      ...current,
-      preset: value,
-      advanced: createPresetAdvancedSettings(kind, value, current.advanced),
-    }));
-  }
-
   function updateAdvanced<Key extends keyof AdvancedSettings>(
     kind: MediaKind,
     key: Key,
     value: AdvancedSettings[Key],
   ) {
-    updateDraftSettings(kind, (current) => {
-      const nextAdvanced: AdvancedSettings = {
-        ...current.advanced,
-        [key]: value,
-      };
-
-      if (key === "resolution" && value !== "custom") {
-        nextAdvanced.customWidth = "";
-        nextAdvanced.customHeight = "";
-      }
-
-      return {
-        ...current,
-        preset: null,
-        advanced: nextAdvanced,
-      };
-    });
+    updateDraftSettings(kind, (current) => ({
+      ...current,
+      advanced: changeAdvancedSetting(current.advanced, key, value),
+    }));
   }
 
   function saveAllChangedDefaults() {
@@ -118,10 +82,7 @@ export function useGlobalSettingsDialog({
         capabilities,
       );
 
-      onSaveDefaultSettings(
-        kind,
-        sanitizedSettings,
-      );
+      onSaveDefaultSettings(kind, sanitizedSettings);
       nextDraftSettingsByKind[kind] = sanitizedSettings;
     }
 
@@ -130,16 +91,13 @@ export function useGlobalSettingsDialog({
   }
 
   return {
-    activeMediaKind,
     activeTab,
     changedKinds,
     draftSettingsByKind,
     hasAnyDraftChanges: changedKinds.length > 0,
     setActiveTab,
-    setThemePreference: onThemePreferenceChange,
     updateAdvanced,
     updateFormat,
-    updatePreset,
     saveAllChangedDefaults,
   };
 }

@@ -1,8 +1,6 @@
 export type MediaKind = "image" | "audio" | "video";
-export type SupportedInputKind = MediaKind | "unknown";
+type SupportedInputKind = MediaKind | "unknown";
 export type ManagedFileStatus = "ready" | "converting" | "done" | "error";
-export type ThemePreference = "system" | "light" | "dark";
-export type ResolvedTheme = "light" | "dark";
 
 export type OutputFormat =
   | "original"
@@ -27,11 +25,6 @@ export type OutputFormat =
   | "mkv"
   | "avi";
 
-export type QualityPreset = "high" | "balanced" | "smallest";
-export type PresetSelection = QualityPreset | null;
-
-export type QualityLevel = "lossless" | "high" | "balanced" | "small";
-
 export type ResolutionMode = "original" | "2x" | "1080p" | "720p" | "custom";
 
 export interface AdvancedSettings {
@@ -49,7 +42,6 @@ export interface AdvancedSettings {
 
 export interface FileConversionSettings {
   format: OutputFormat;
-  preset: PresetSelection;
   advanced: AdvancedSettings;
 }
 
@@ -68,7 +60,6 @@ export interface SupportedInputDefinition {
 export interface DetectedFileInfo {
   kind: SupportedInputKind;
   extension: string;
-  label: string;
 }
 
 export interface ManagedConversionFile {
@@ -81,7 +72,6 @@ export interface ManagedConversionFile {
   type: string;
   kind: MediaKind;
   extension: string;
-  detailsLabel: string;
   previewUrl: string | null;
   shouldRevokePreviewUrl: boolean;
   naturalWidth: number | null;

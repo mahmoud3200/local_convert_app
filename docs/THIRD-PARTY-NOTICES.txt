@@ -1,4 +1,4 @@
-Local Convert - Third-Party Notices
+LoConvert - Third-Party Notices
 
 This project uses third-party open-source software. This notice is provided for
 attribution and distribution transparency. It is not legal advice.
@@ -6,7 +6,7 @@ attribution and distribution transparency. It is not legal advice.
 FFmpeg
 ------
 
-Desktop builds of Local Convert use FFmpeg for native media conversion.
+Desktop builds of LoConvert use FFmpeg for native media conversion.
 FFmpeg is a project of the FFmpeg developers:
 
   https://ffmpeg.org

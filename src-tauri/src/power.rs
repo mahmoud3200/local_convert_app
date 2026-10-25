@@ -85,7 +85,7 @@ impl PlatformSleepGuard {
                 "systemd-inhibit",
                 &[
                     "--what=sleep",
-                    "--why=Local Convert is converting files",
+                    "--why=LoConvert is converting files",
                     "--mode=block",
                     "sleep",
                     "infinity",
@@ -105,7 +105,7 @@ impl PlatformSleepGuard {
     fn new_windows() -> Result<Self, String> {
         let (stop_tx, stop_rx) = std::sync::mpsc::channel();
         let handle = std::thread::Builder::new()
-            .name("local-convert-sleep-inhibitor".to_string())
+            .name("loconvert-sleep-inhibitor".to_string())
             .spawn(move || {
                 use windows::Win32::System::Power::{
                     SetThreadExecutionState, ES_CONTINUOUS, ES_SYSTEM_REQUIRED,

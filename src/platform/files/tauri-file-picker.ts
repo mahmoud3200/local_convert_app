@@ -29,27 +29,6 @@ export async function getExistingNativePaths(paths: string[]) {
   );
 }
 
-export async function loadNativePreviewUrl(
-  path: string,
-  mimeType: string,
-  previewLimitBytes: number,
-) {
-  if (!isTauriRuntime()) {
-    return null;
-  }
-
-  const bytes = await invoke<number[]>("read_native_preview", {
-    path,
-    maxBytes: previewLimitBytes,
-  });
-
-  return URL.createObjectURL(
-    new Blob([Uint8Array.from(bytes)], {
-      type: mimeType,
-    }),
-  );
-}
-
 export async function pickNativeFiles(
   extensions: string[],
   previewLimitBytes: number,

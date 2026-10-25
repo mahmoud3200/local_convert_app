@@ -3,7 +3,7 @@ import {
   cloneFileSettings,
   loadStoredDefaults,
   saveStoredDefaults,
-} from "@/features/converter/settings-storage";
+} from "@/features/converter/settings/settings-storage";
 import type {
   FileConversionSettings,
   ManagedConversionFile,

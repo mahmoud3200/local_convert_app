@@ -9,7 +9,7 @@ use tauri::{Manager, WindowEvent};
 use crate::{
     commands::{
         conversion::{cancel_all_conversions, cancel_conversion, convert_file, convert_file_path},
-        files::{check_native_paths, get_native_file_metadata, read_native_preview},
+        files::{check_native_paths, get_native_file_metadata},
         output::{copy_generated_output, delete_generated_output, zip_generated_outputs},
         system::open_external_url,
     },
@@ -41,7 +41,6 @@ pub fn run() {
             delete_generated_output,
             get_native_file_metadata,
             open_external_url,
-            read_native_preview,
             zip_generated_outputs
         ])
         .setup(|app| {

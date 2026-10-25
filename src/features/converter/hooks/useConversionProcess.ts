@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createConvertRequest } from "@/features/converter/conversion-request";
+import {
+  getConversionErrorMessage,
+  getDownloadErrorMessage,
+  getDownloadSuccessMessage,
+  notifyConversionComplete,
+} from "@/features/converter/conversion/conversion-messages";
+import { createConvertRequest } from "@/features/converter/conversion/conversion-request";
 import { useToast } from "@/hooks/useToast";
 import type {
   FileConversionSettings,
@@ -79,7 +85,9 @@ export function useConversionProcess({
   const downloadsByFileId = useMemo(
     () =>
       Object.fromEntries(
-        Object.entries(storedDownloadsByFileId).filter(([fileId]) => activeIds.has(fileId)),
+        Object.entries(storedDownloadsByFileId).filter(([fileId]) =>
+          activeIds.has(fileId),
+        ),
       ),
     [activeIds, storedDownloadsByFileId],
   );
@@ -133,16 +141,11 @@ export function useConversionProcess({
 
     sleepPreventionActiveRef.current = shouldPreventSleep;
 
-    void platform.setSleepPrevention(shouldPreventSleep).catch((error: unknown) => {
-      console.warn("Could not update sleep prevention:", error);
-    });
-  }
-
-  async function startConversion(
-    file: ManagedConversionFile,
-    settings: FileConversionSettings,
-  ) {
-    await convertOne(file, settings);
+    void platform
+      .setSleepPrevention(shouldPreventSleep)
+      .catch((error: unknown) => {
+        console.warn("Could not update sleep prevention:", error);
+      });
   }
 
   async function startBatchConversion(
@@ -212,22 +215,32 @@ export function useConversionProcess({
     }
   }
 
+  async function saveWithToast(
+    fileName: string,
+    save: () => ReturnType<ConverterPlatformServices["saveDownloadableOutput"]>,
+  ) {
+    try {
+      const result = await save();
+
+      if (result.status === "saved") {
+        toast.success(getDownloadSuccessMessage(fileName, result.target));
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error(getDownloadErrorMessage(fileName, error));
+    }
+  }
+
   async function download(fileId: string) {
     const output = downloadsByFileId[fileId];
+
     if (!output) {
       return;
     }
 
-    try {
-      const result = await platform.saveDownloadableOutput(output);
-
-      if (result.status === "saved") {
-        toast.success(getDownloadSuccessMessage(output.fileName, result.target));
-      }
-    } catch (error) {
-      console.error(error);
-      toast.error(getDownloadErrorMessage(output.fileName, error));
-    }
+    await saveWithToast(output.fileName, () =>
+      platform.saveDownloadableOutput(output),
+    );
   }
 
   async function downloadAll(fileIds: string[]) {
@@ -239,16 +252,9 @@ export function useConversionProcess({
       return;
     }
 
-    try {
-      const result = await platform.saveDownloadableOutputsAsZip(outputs);
-
-      if (result.status === "saved") {
-        toast.success(getDownloadSuccessMessage("local-convert-results.zip", result.target));
-      }
-    } catch (error) {
-      console.error(error);
-      toast.error(getDownloadErrorMessage("local-convert-results.zip", error));
-    }
+    await saveWithToast("local-convert-results.zip", () =>
+      platform.saveDownloadableOutputsAsZip(outputs),
+    );
   }
 
   return {
@@ -257,66 +263,6 @@ export function useConversionProcess({
     download,
     downloadAll,
     startBatchConversion,
-    startConversion,
+    startConversion: convertOne,
   };
-}
-
-function notifyConversionComplete(
-  platform: ConverterPlatformServices,
-  file: ManagedConversionFile,
-  output: DownloadableOutput,
-) {
-  void platform
-    .notifyConversionComplete({
-      inputFileName: file.name,
-      outputFileName: output.fileName,
-    })
-    .then((result) => {
-      if (result.status === "failed") {
-        console.warn(`Could not show desktop notification: ${result.error}`);
-      }
-    });
-}
-
-function getConversionErrorMessage(
-  file: ManagedConversionFile,
-  settings: FileConversionSettings,
-  error: unknown,
-) {
-  const detail = getErrorDetail(error);
-
-  return `Could not convert ${file.name} to ${settings.format.toUpperCase()}. ${detail}`;
-}
-
-function getErrorDetail(error: unknown) {
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  if (typeof error === "string") {
-    return error;
-  }
-
-  if (error && typeof error === "object") {
-    try {
-      return JSON.stringify(error);
-    } catch {
-      return String(error);
-    }
-  }
-
-  return "The converter returned an unknown error.";
-}
-
-function getDownloadSuccessMessage(
-  fileName: string,
-  target: "browser-download" | "desktop-file",
-) {
-  return target === "desktop-file"
-    ? `Saved ${fileName}.`
-    : `Downloaded ${fileName}.`;
-}
-
-function getDownloadErrorMessage(fileName: string, error: unknown) {
-  return `Could not save ${fileName}. ${getErrorDetail(error)}`;
 }

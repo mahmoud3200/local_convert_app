@@ -1,6 +1,6 @@
-# Local Convert
+# LoConvert
 
-Local Convert is a privacy-first local file converter built as a single codebase that runs in two environments:
+LoConvert is a privacy-first local file converter built as a single codebase that runs in two environments:
 
 - Web: React + FFmpeg WASM for lighter, browser-safe work: [local-convert-app.vercel.app](https://local-convert-app.vercel.app/)
 - Desktop: Tauri v2 + native FFmpeg for heavier local conversion: [GitHub Releases](https://github.com/mahmoud3200/local_convert_app/releases/tag/v1.0-beta)
@@ -25,7 +25,7 @@ The goal was to build a practical, privacy-first tool that clearly separates res
 - Stores default conversion settings per media type
 - Supports per-file configuration
 - Uses a shared UI with two different conversion engines
-- Persists theme and default settings in `localStorage`
+- Persists default settings in `localStorage`
 - Persists the desktop queue across app restarts when files still exist
 - Uses desktop notifications when a conversion finishes in Tauri
 - Cancels active conversions when a file is removed, the queue is cleared, or the desktop app closes
@@ -55,7 +55,7 @@ The browser build uses `ffmpeg.wasm`. This is useful because it keeps everything
 - browser memory limits
 - slower heavy transcoding
 - codec support depends on the bundled WASM core
-- large previews and large video transcodes can make the UI unstable
+- large video transcodes can make the UI unstable
 
 Because of that, the web engine is intentionally conservative:
 
@@ -107,11 +107,13 @@ The UI derives its options from those capabilities instead of hardcoding one glo
 The UI only exposes domain-level settings such as:
 
 - output format
-- preset
 - quality
+- compression
 - resolution
 - bitrate
+- frame rate
 - sample rate
+- channels
 - metadata removal
 
 Raw FFmpeg arguments are intentionally not exposed. The goal is:
@@ -135,17 +137,17 @@ That decision is product-driven and technical:
 - fewer codec-related failures
 - more predictable UX
 
-### 5. Preview is capped at 50 MB
+### 5. Image metadata probing is capped at 50 MB
 
-Preview is disabled for files larger than `50 MB` in both web and desktop UI.
+The app still needs a source URL for some image work, such as reading output dimensions. That URL is only created for images at or below `50 MB`.
 
 This limit exists to protect the UI runtime:
 
-- browser previews decode inside the page
-- Tauri previews still render inside a WebView
-- large media previews can freeze the interface or decode unpredictably
+- browser image URLs decode inside the page
+- Tauri image URLs still render inside a WebView
+- large images can freeze the interface or decode unpredictably
 
-Conversion can still work for larger files. The limit only applies to preview.
+Conversion can still work for larger files. The limit only applies to the temporary image URL used for metadata probing.
 
 ### 6. Desktop prefers native file paths
 
@@ -157,7 +159,6 @@ There is still a fallback path for browser `File` objects, but that route is int
 
 The app persists:
 
-- theme preference
 - default settings per media kind
 - desktop queue state for native-path files
 
@@ -165,7 +166,7 @@ Desktop queue restore is defensive:
 
 - missing native paths are filtered out
 - invalid settings are sanitized on load
-- restored previews are rebuilt safely instead of trusting stale access state
+- restored items never reuse stale WebView file URLs
 
 ### 8. Cancellation matters
 
@@ -182,7 +183,7 @@ That behavior exists because long-running local media work must not survive UI c
 The desktop app handles a few OS-facing edge cases deliberately:
 
 - queue restore only brings back native-path files that still exist
-- restored small previews are rebuilt through Rust instead of trusting stale WebView file access
+- restored items revalidate native paths before they reappear in the queue
 - `Download All` on desktop produces a ZIP instead of pretending browser-style multi-download UX makes sense in a native app
 - FFmpeg child processes are tracked so they can be cancelled explicitly
 
@@ -192,9 +193,9 @@ The UI uses Tailwind v4 with semantic CSS variables in [`src/styles/globals.css`
 
 - `@theme` is used for structural tokens such as radii, shadows, spacing, and fonts
 - `@theme inline` maps semantic color utilities to CSS variables
-- light/dark mode is handled by `data-theme` on the document root
+- the app uses a single dark theme built on those tokens
 
-This keeps theme switching simple and keeps component classes tied to semantic meaning instead of hardcoded color values.
+This keeps component classes tied to semantic meaning instead of hardcoded color values.
 
 ### 11. Web analytics stay web-only
 
@@ -214,41 +215,89 @@ src/
     WebsiteAnalytics.tsx
   components/
     ui/
-      ...shared UI primitives only
+      button.tsx
+      select.tsx
+      switch.tsx
+      tooltip.tsx
   features/
     converter/
       components/
         dialogs/
+          FileSettingsDialog.tsx
+          GlobalSettingsDialog.tsx
         file-list/
+          AddMoreFiles.tsx
+          BatchActions.tsx
+          FileKindIcon.tsx
+          FileList.tsx
+          FileRow.tsx
+          FileRowActions.tsx
+          FileStatusLabel.tsx
         layout/
+          ConverterBackdrop.tsx
+          ConverterDialogs.tsx
+          ConverterHeader.tsx
+          ConverterScreen.tsx
+          FfmpegDesktopNotice.tsx
+          GlobalDropOverlay.tsx
+          HomeHero.tsx
+          UploadDropzone.tsx
         settings/
+          overlay/
+            audio-sections.tsx
+            DimensionInputs.tsx
+            FormatSelect.tsx
+            OptionCardGroup.tsx
+            ResolutionField.tsx
+            SettingsOverlayFrame.tsx
+            SettingsSections.tsx
+            settings-labels.ts
+            settings-section.ts
+            settings-visibility.ts
+            SliderField.tsx
+            SummaryStrip.tsx
+            ToggleRow.tsx
+            visual-sections.tsx
+      constants/
+        index.ts
+      conversion/
+        conversion-messages.ts
+        conversion-request.ts
+      files/
+        desktop-queue-storage.ts
+        file-formatting.ts
+        format-support.ts
+        managed-files.ts
+      settings/
+        advanced-updates.ts
+        defaults.ts
+        output-dimensions.ts
+        settings-clamping.ts
+        settings-numbers.ts
+        settings-rules.ts
+        settings-storage.ts
       hooks/
-        useFileManager.ts
-        useConversionSettings.ts
         useConversionProcess.ts
+        useConversionSettings.ts
         useConverterWorkspace.ts
-        useThemePreference.ts
-        ...
-      check-browser-support.ts
-      constants.ts
-      conversion-request.ts
-      desktop-queue-storage.ts
-      file-formatting.ts
-      format-support.ts
-      presets.ts
-      preview-rules.ts
-      settings-rules.ts
-      settings-storage.ts
-      settings-summary.ts
-      theme-storage.ts
+        useDesktopQueueHydration.ts
+        useDismissedFlag.ts
+        useFileManager.ts
+        useFileSettingsDraft.ts
+        useGlobalFileDrop.ts
+        useGlobalSettingsDialog.ts
+        usePlatformLinks.ts
       types.ts
   platform/
     converter/
+      cancel-all-conversions.ts
       create-engine.ts
       engine.ts
-      wasm-engine.ts
+      mime-types.ts
       tauri-engine.ts
-      cancel-all-conversions.ts
+      wasm-args.ts
+      wasm-engine.ts
+      wasm-errors.ts
     files/
       tauri-file-picker.ts
       types.ts
@@ -266,6 +315,7 @@ src/
       media-dimensions.ts
     converter-platform.ts
     create-converter-platform.ts
+    check-browser-support.ts
     tauri-runtime.ts
   styles/
     globals.css
@@ -306,7 +356,10 @@ This is the main feature boundary.
 
 - `components/` contains converter-specific UI
 - `hooks/` contains feature state and orchestration
-- the top-level files define settings, presets, storage, validation, and formatting rules
+- `constants/` centralizes storage keys, setting ranges, and option lists
+- `files/` groups queue persistence, managed-file factories, formatting, and format-support helpers
+- `settings/` groups defaults, storage, sanitizing/clamping, output-dimension, and number helpers
+- `conversion/` groups conversion-request construction and conversion/download messages
 
 This folder should contain converter-specific behavior, not general-purpose app code.
 
@@ -322,14 +375,14 @@ It handles:
 - output saving
 - ZIP export
 - notifications
-- preview metadata loading
+- image dimension probing
 - sleep prevention
 
 This layer should not know about React rendering.
 
 ### `src/components/ui`
 
-This folder is reserved for truly reusable UI primitives such as buttons, selects, dialogs, and tooltips.
+This folder is reserved for truly reusable UI primitives such as buttons, selects, switches, and tooltips.
 
 Converter-specific UI does not belong here.
 
@@ -343,7 +396,6 @@ Key jobs handled in Rust:
 - sidecar/system FFmpeg resolution
 - conversion cancellation
 - native file metadata access
-- preview file reads for restored desktop items
 - saving and zipping generated outputs
 - sleep inhibition while conversion is active
 - app-close cleanup for running FFmpeg jobs
@@ -443,7 +495,7 @@ The browser runtime requires:
 - `Blob`
 - `URL.createObjectURL`
 
-That check lives in [`src/features/converter/check-browser-support.ts`](src/features/converter/check-browser-support.ts).
+That check lives in [`src/platform/check-browser-support.ts`](src/platform/check-browser-support.ts).
 
 Even when the browser passes the runtime check, codec/container support and performance still depend on the browser and the bundled FFmpeg WASM core.
 
@@ -451,7 +503,7 @@ Even when the browser passes the runtime check, codec/container support and perf
 
 - Browser video is intentionally limited compared to desktop
 - AVIF is not exposed in the web runtime
-- Preview is disabled above `50 MB`
+- Image metadata probing is skipped above `50 MB`
 - Desktop still depends on FFmpeg being bundled correctly or being available on the system
 - Very large desktop video conversions can still take a long time depending on codec, resolution, bitrate, and hardware
 - Linux and macOS release builds exist, but broader runtime validation depends on real-device testing

@@ -1,6 +1,6 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "Local Convert",
+  "productName": "LoConvert",
   "version": "1.0.0-beta",
   "identifier": "app.localconvert.desktop",
   "build": {
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Local Convert",
+        "title": "LoConvert",
         "width": 1280,
         "height": 800,
         "resizable": true,

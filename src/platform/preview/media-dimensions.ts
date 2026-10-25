@@ -1,7 +1,6 @@
 type MediaDimensions = {
   width: number | null;
   height: number | null;
-  detailsLabel: string;
 };
 
 export async function loadMediaDimensions(
@@ -15,10 +14,8 @@ export async function loadMediaDimensions(
         resolve({
           width: image.naturalWidth,
           height: image.naturalHeight,
-          detailsLabel: `${image.naturalWidth} x ${image.naturalHeight}`,
         });
-      image.onerror = () =>
-        resolve({ width: null, height: null, detailsLabel: "Image" });
+      image.onerror = () => resolve({ width: null, height: null });
       image.src = mediaUrl;
     });
   }
@@ -30,14 +27,9 @@ export async function loadMediaDimensions(
       resolve({
         width: video.videoWidth || null,
         height: video.videoHeight || null,
-        detailsLabel:
-          video.videoWidth && video.videoHeight
-            ? `${video.videoWidth} x ${video.videoHeight}`
-            : "Video",
       });
     };
-    video.onerror = () =>
-      resolve({ width: null, height: null, detailsLabel: "Video" });
+    video.onerror = () => resolve({ width: null, height: null });
     video.src = mediaUrl;
   });
 }
