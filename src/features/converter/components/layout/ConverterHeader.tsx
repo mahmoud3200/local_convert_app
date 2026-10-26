@@ -29,12 +29,12 @@ export function ConverterHeader({
       <div className="flex items-center gap-2 sm:gap-3.75">
         {showInstallApp ? (
           <Button
-            className="h-10.25 gap-1.5 rounded-full border-white/90 bg-transparent px-3 text-[16px] font-normal text-white hover:border-white hover:bg-white/10 hover:text-white sm:gap-[5px] sm:px-5 sm:text-[18px]"
+            className="h-10.25 gap-1.5 rounded-full border-white/90 bg-transparent px-3 text-[16px] font-normal text-white hover:border-white hover:bg-white/10 hover:text-white sm:gap-1.25 sm:px-5 sm:text-[18px]"
             variant="secondary"
             onClick={onInstallApp}
           >
             <ArrowDownToLine className="size-4.5 shrink-0" strokeWidth={2.4} />
-            <span className="hidden sm:inline">Install App</span>
+            <span className="sr-only sm:not-sr-only">Install App</span>
           </Button>
         ) : null}
 
