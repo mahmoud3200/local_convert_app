@@ -65,12 +65,6 @@ Conversions run through an internal queue inside `WasmEngine`, so concurrent con
 
 Cancelling the active conversion terminates the FFmpeg worker and resets the engine. The next conversion loads a fresh instance.
 
-## File previews and the 50 MB limit
-
-Image previews use an object URL. To protect the UI, a preview URL is only created for images at or below `50 MB` (`MAX_MEDIA_URL_FILE_SIZE_BYTES`).
-
-The limit applies to the temporary preview and metadata probe, not to conversion itself. Larger files can still be converted, but they may not show a preview.
-
 ## Persistence
 
 The web build persists default conversion settings per media type in `localStorage`:
